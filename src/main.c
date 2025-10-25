@@ -1,7 +1,9 @@
 #include <bits/pthreadtypes.h>
 #include <raylib.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 typedef struct gap_buffer_ {
   unsigned int start;
@@ -26,6 +28,8 @@ void GapBufferInitDebug(gap_buffer *buffer, unsigned int req_size) {
     buffer->data[i] = '-';
   }
 }
+
+void GapBufferDestroy(gap_buffer *buffer) { free(buffer->data); }
 
 void GapBufferInsert(gap_buffer *buffer, char insert) {
   buffer->data[buffer->cursor_start] = insert;
@@ -52,6 +56,30 @@ void GapBufferPrintBufferDebug(gap_buffer *buffer) {
   printf("\n");
 }
 
+bool GapBufferMoveLeft(gap_buffer *buffer, unsigned int amount) {
+  if (amount <= buffer->cursor_start) {
+    for (int i = 0; i < amount; i++) {
+      buffer->data[buffer->cursor_end] = buffer->data[buffer->cursor_start - 1];
+      buffer->cursor_start--;
+      buffer->cursor_end--;
+    }
+    return true;
+  }
+  return false;
+}
+
+bool GapBufferMoveRight(gap_buffer *buffer, unsigned int amount) {
+  if (amount <= buffer->end - buffer->cursor_end) {
+    for (int i = 0; i < amount; i++) {
+      buffer->data[buffer->cursor_start] = buffer->data[buffer->cursor_end + 1];
+      buffer->cursor_start++;
+      buffer->cursor_end++;
+    }
+    return true;
+  }
+  return false;
+}
+
 int main(int argc, char *argv[]) {
   SetConfigFlags(FLAG_WINDOW_RESIZABLE);
   InitWindow(720, 480, (char *)"SpiderType");
@@ -65,6 +93,8 @@ int main(int argc, char *argv[]) {
   GapBufferInitDebug(&testBuff, 10);
   GapBufferPrintBufferDebug(&testBuff);
   GapBufferInsert(&testBuff, 'A');
+  GapBufferPrintBufferDebug(&testBuff);
+  GapBufferMoveLeft(&testBuff, 1);
   GapBufferPrintBufferDebug(&testBuff);
   while (!WindowShouldClose()) {
     BeginDrawing();
