@@ -2,7 +2,7 @@
 CC = gcc
 
 # Compiler and linker flags
-CFLAGS = -I/usr/include -Wall -O2
+CFLAGS = -I/usr/include -Wall -O2 -ggdb
 LDFLAGS = -L/usr/lib -lraylib -lm -lpthread -ldl -lrt -lGL -lX11
 
 # Target name

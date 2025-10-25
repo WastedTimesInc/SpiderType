@@ -12,7 +12,8 @@ typedef struct gap_buffer_t {
 } gap_buffer;
 
 void GapBufferInit(gap_buffer *buffer, unsigned int req_size) {
-  buffer->data = malloc(req_size * sizeof(char));
+  buffer->data = malloc((req_size+1) * sizeof(char));
+  buffer->data[req_size]='\0';
   buffer->start = 0;
   buffer->end = req_size - 1;
   buffer->cursor_start = buffer->start;
@@ -29,7 +30,8 @@ void GapBufferInitDebug(gap_buffer *buffer, unsigned int req_size) {
 
 void GapBufferInsert(gap_buffer *buffer, char insert) {
   if(buffer->cursor_start==(buffer->end-buffer->start)){
-    realloc(buffer->data,1+(buffer->end-buffer->start)*1.5);
+    buffer->data = realloc(buffer->data,1+(buffer->end-buffer->start)*2);
+    buffer->data[(buffer->end-buffer->start)*2]='\0';
     buffer->end=buffer->start+1+(buffer->end-buffer->start)*1.5;
     buffer->cursor_end=buffer->start+1+(buffer->end-buffer->start)*1.5;
   }
@@ -67,14 +69,38 @@ int main(int argc, char *argv[]) {
   SetTargetFPS(60);
   printf("Window ready\n");
   gap_buffer testBuff;
+  char* latch = calloc(100,sizeof(char));
+  int latchSize =0;
+  int textSize =0;
+  int fontSize = 10;
+  int cursorLocation[2]={0,0};
+  char* txtBuff;
+  char c ='\0';
+  float width_factor = 0.90;
+  gap_buffer* inBuff = malloc(sizeof(gap_buffer));
+  GapBufferInitDebug(inBuff, 1);
   GapBufferInitDebug(&testBuff, 10);
   GapBufferPrintBufferDebug(&testBuff);
   GapBufferInsert(&testBuff, 'A');
   GapBufferPrintBufferDebug(&testBuff);
   while (!WindowShouldClose()) {
+    c = GetCharPressed();
+    while(c!=0){
+      GapBufferInsert(inBuff,c);
+      cursorLocation[0]+=1;
+      textSize++;
+      c = GetCharPressed();
+    }
+    if(IsKeyPressed(KEY_LEFT)){
+      cursorLocation[0]+=-1+(cursorLocation[0]==0);
+    }else if(IsKeyPressed(KEY_RIGHT)){
+      cursorLocation[0]+=1-(cursorLocation[0]>textSize);
+    }
+
     BeginDrawing();
-    DrawRectangle(0, 0, GetRenderWidth(), GetRenderHeight(), WHITE);
-    drawText
+    DrawRectangle(0, 0, GetRenderWidth(), GetRenderHeight(), BLACK);
+    DrawText(inBuff->data,0,0,fontSize,GRAY);
+    DrawText("_",MeasureText(inBuff->data,fontSize)-MeasureText(inBuff->data+cursorLocation[0],fontSize),fontSize*cursorLocation[1]+1,fontSize,ORANGE);
     EndDrawing();
   }
   CloseWindow();
