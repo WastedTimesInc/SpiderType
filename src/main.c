@@ -3,11 +3,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-typedef struct gap_buffer_ {
+typedef struct gap_buffer_t {
   unsigned int start;
   unsigned int end;
-  unsigned int cursor_start;
-  unsigned int cursor_end;
+  unsigned int cursor_start; // relative to buffer start
+  unsigned int cursor_end; // Seems redundant
   char *data;
 } gap_buffer;
 
@@ -28,6 +28,11 @@ void GapBufferInitDebug(gap_buffer *buffer, unsigned int req_size) {
 }
 
 void GapBufferInsert(gap_buffer *buffer, char insert) {
+  if(buffer->cursor_start==(buffer->end-buffer->start)){
+    realloc(buffer->data,1+(buffer->end-buffer->start)*1.5);
+    buffer->end=buffer->start+1+(buffer->end-buffer->start)*1.5;
+    buffer->cursor_end=buffer->start+1+(buffer->end-buffer->start)*1.5;
+  }
   buffer->data[buffer->cursor_start] = insert;
   buffer->cursor_start++;
 }
@@ -69,7 +74,7 @@ int main(int argc, char *argv[]) {
   while (!WindowShouldClose()) {
     BeginDrawing();
     DrawRectangle(0, 0, GetRenderWidth(), GetRenderHeight(), WHITE);
-    DrawText((char *)"SpiderType", 10, 10, 20, BLACK);
+    drawText
     EndDrawing();
   }
   CloseWindow();
