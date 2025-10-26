@@ -5,16 +5,18 @@
 #include <stdlib.h>
 #include <string.h>
 
-typedef struct gap_buffer_ {
+
+typedef struct gap_buffer_t {
   unsigned int start;
   unsigned int end;
-  unsigned int cursor_start;
-  unsigned int cursor_end;
+  unsigned int cursor_start; // relative to buffer start
+  unsigned int cursor_end; // Seems redundant
   char *data;
 } gap_buffer;
 
 void GapBufferInit(gap_buffer *buffer, unsigned int req_size) {
-  buffer->data = malloc(req_size * sizeof(char));
+  buffer->data = malloc((req_size+1) * sizeof(char));
+  buffer->data[req_size]='\0';
   buffer->start = 0;
   buffer->end = req_size - 1;
   buffer->cursor_start = buffer->start;
@@ -152,6 +154,9 @@ int GapBufferGapSize(gap_buffer *buffer) {
 }
 
 int main(int argc, char *argv[]) {
+  if(argc>1){
+    //TODO handle the case where a file name is passed as an arg
+  }
   SetConfigFlags(FLAG_WINDOW_RESIZABLE);
   InitWindow(720, 480, (char *)"SpiderType");
   while (!IsWindowReady()) {
