@@ -162,27 +162,20 @@ int main(int argc, char *argv[]) {
   printf("Window ready\n");
 
   gap_buffer testBuff;
-  GapBufferInit(&testBuff, 10);
-  printf("%d\n", GapBufferGapSize(&testBuff));
-  printf("%s\n", GapBufferConcatenate(&testBuff));
+  GapBufferInit(&testBuff, 100);
 
-  GapBufferInsertArray(&testBuff, (char *)"HELLO");
-  printf("%d\n", GapBufferGapSize(&testBuff));
-  printf("%s\n", GapBufferConcatenate(&testBuff));
-
-  GapBufferMoveRight(&testBuff, 1);
-  printf("%d\n", GapBufferGapSize(&testBuff));
-  printf("%s\n", GapBufferConcatenate(&testBuff));
-
-  GapBufferMoveLeft(&testBuff, 1);
-  printf("%d\n", GapBufferGapSize(&testBuff));
-  printf("%s\n", GapBufferConcatenate(&testBuff));
-
-  GapBufferResizeGap(&testBuff, 10);
   while (!WindowShouldClose()) {
+    int pressed = GetCharPressed();
+    if (pressed != 0) {
+      GapBufferInsert(&testBuff, (char)pressed);
+    }
+    if (GapBufferGapSize(&testBuff) < 10) {
+      GapBufferResizeGap(&testBuff, 100);
+    }
     BeginDrawing();
     DrawRectangle(0, 0, GetRenderWidth(), GetRenderHeight(), WHITE);
     DrawText((char *)"SpiderType", 10, 10, 20, BLACK);
+    DrawText(GapBufferConcatenate(&testBuff), 10, 30, 20, BLACK);
     EndDrawing();
   }
   CloseWindow();
