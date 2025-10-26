@@ -71,9 +71,10 @@ void lBAbsInsert(lBuffer* lb,int pos,char ch){
     lBAppend(lb,ch);
   }
   int c =0;
+  int tot =0;
   for(int i=0;i<lb->nb;i++){
     c+=strlen(lb->data+c+i);
-
+    tot+=strlen(lb->data+c+i);
   }
 }
 
@@ -172,6 +173,9 @@ bool GapBufferMoveRight(gap_buffer *buffer, unsigned int amount) {
 }
 
 int main(int argc, char *argv[]) {
+  if(argc>1){
+    //TODO handle the case where a file name is passed as an arg
+  }
   SetConfigFlags(FLAG_WINDOW_RESIZABLE);
   InitWindow(720, 480, (char *)"SpiderType");
   while (!IsWindowReady()) {
