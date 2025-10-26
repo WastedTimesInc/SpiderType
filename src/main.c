@@ -5,6 +5,90 @@
 #include <stdlib.h>
 #include <string.h>
 
+typedef struct linked_buffer_t {
+  char* data;
+  int current;
+  int size;
+  int height;
+  struct linked_buffer_t** sub_buffers;
+  int* buff_index;
+  int nb;
+}lBuffer;
+
+void lBAppend(lBuffer* lb,char c){
+  if(c=='\n'){
+    lb->height++;
+  }
+  if(lb->current==lb->size-1){
+    lb->data = realloc(lb->data,2*lb->size);
+    memset(lb->data+lb->size,'\0',lb->size);
+    lb->size*=2;
+  }
+  lb->data[lb->current] =c;
+  lb->current++;
+}
+
+void lBDelete(lBuffer* lb,int pos){
+  if(lb->data[pos]=='\n'){
+    lb->height--;
+  }
+  strcpy(lb->data+pos+1,lb->data+pos);
+  lb->data[lb->current]='\0';
+  lb->current--;
+}
+
+int lBTotalSize(lBuffer* lb){
+  int size=lb->current;
+  for(int i=0;i<lb->nb;++i){
+    if(lb->sub_buffers[i]!=NULL){
+      size+=lBTotalSize(lb->sub_buffers[i]);
+    }
+  }
+  return size;
+}
+int lBTotalHeight(lBuffer* lb){
+  int height=lb->current;
+  for(int i=0;i<lb->nb;++i){
+    if(lb->sub_buffers[i]!=NULL){
+      height+=lBTotalSize(lb->sub_buffers[i]);
+    }
+  }
+  return height;
+}
+
+void lBInsertBuffer(lBuffer* lb,lBuffer* b,int pos){
+  lb->nb++;
+  lb->sub_buffers=realloc(lb->sub_buffers,lb->nb*sizeof(void*));
+  lb->sub_buffers[lb->nb-1]=b;
+  lb->buff_index=realloc(lb->buff_index,lb->nb*sizeof(int));
+  lb->buff_index[lb->nb-1]=pos;
+  lb->data[pos]='\0';
+
+}
+
+void lBAbsInsert(lBuffer* lb,int pos,char ch){
+  if(pos==lBTotalSize(lb)){
+    lBAppend(lb,ch);
+  }
+  int c =0;
+  for(int i=0;i<lb->nb;i++){
+    c+=strlen(lb->data+c+i);
+
+  }
+}
+
+void DrawLBasText(lBuffer* lb,int *x,int *y,int size,Color c){
+  DrawText(lb->data,*x,*y,size,c);
+  *x+=MeasureText(lb->data,size);
+  *y+=size*lb->height;
+  for(int i=0;i<lb->nb;++i){
+    if(lb->sub_buffers[i]!=NULL){
+      DrawLBasText(lb->sub_buffers[i],x,y,size,c);
+      DrawText(lb->data+lb->buff_index[i],*x,*y,size,c);
+    }
+  }
+}
+
 typedef struct gap_buffer_t {
   unsigned int start;
   unsigned int end;
@@ -97,16 +181,8 @@ int main(int argc, char *argv[]) {
   SetTargetFPS(60);
   printf("Window ready\n");
   gap_buffer testBuff;
-  char* latch = calloc(100,sizeof(char));
-  int latchSize =0;
-  int textSize =0;
-  int fontSize = 10;
   int cursorLocation[2]={0,0};
-  char* txtBuff;
   char c ='\0';
-  float width_factor = 0.90;
-  gap_buffer* inBuff = malloc(sizeof(gap_buffer));
-  GapBufferInitDebug(inBuff, 1);
   GapBufferInitDebug(&testBuff, 10);
   GapBufferPrintBufferDebug(&testBuff);
   GapBufferInsert(&testBuff, 'A');
@@ -116,21 +192,17 @@ int main(int argc, char *argv[]) {
   while (!WindowShouldClose()) {
     c = GetCharPressed();
     while(c!=0){
-      GapBufferInsert(inBuff,c);
       cursorLocation[0]+=1;
-      textSize++;
       c = GetCharPressed();
     }
     if(IsKeyPressed(KEY_LEFT)){
       cursorLocation[0]+=-1+(cursorLocation[0]==0);
     }else if(IsKeyPressed(KEY_RIGHT)){
-      cursorLocation[0]+=1-(cursorLocation[0]>textSize);
     }
 
     BeginDrawing();
     DrawRectangle(0, 0, GetRenderWidth(), GetRenderHeight(), BLACK);
-    DrawText(inBuff->data,0,0,fontSize,GRAY);
-    DrawText("_",MeasureText(inBuff->data,fontSize)-MeasureText(inBuff->data+cursorLocation[0],fontSize),fontSize*cursorLocation[1]+1,fontSize,ORANGE);
+    DrawText("Test",0,0,10,ORANGE);
     EndDrawing();
   }
   CloseWindow();
