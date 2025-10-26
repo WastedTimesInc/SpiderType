@@ -182,21 +182,24 @@ int main(int argc, char *argv[]) {
 
   while (!WindowShouldClose()) {
     int pressed = GetCharPressed();
-    int key = GetKeyPressed();
     if (pressed != 0) {
       GapBufferInsert(&testBuff, (char)pressed);
     }
-    if (IsKeyPressed(KEY_BACKSPACE)) {
+    switch (GetKeyPressed()) {
+    case KEY_BACKSPACE:
       GapBufferBackspace(&testBuff);
-    }
-    if (IsKeyPressed(KEY_DELETE)) {
+      break;
+    case KEY_DELETE:
       GapBufferDelete(&testBuff);
-    }
-    if (IsKeyPressed(KEY_LEFT)) {
+      break;
+    case KEY_LEFT:
       GapBufferMoveLeft(&testBuff, 1);
-    }
-    if (IsKeyPressed(KEY_RIGHT)) {
+      break;
+    case KEY_RIGHT:
       GapBufferMoveRight(&testBuff, 1);
+      break;
+    default:
+      break;
     }
 
     BeginDrawing();
