@@ -151,6 +151,22 @@ int GapBufferGapSize(gap_buffer *buffer) {
   return buffer->cursor_end - buffer->cursor_start + 1;
 }
 
+bool GapBufferBackspace(gap_buffer *buffer) {
+  if (buffer->cursor_start > buffer->start) {
+    buffer->cursor_start--;
+    return true;
+  }
+  return false;
+}
+
+bool GapBufferDelete(gap_buffer *buffer) {
+  if (buffer->cursor_end < buffer->end) {
+    buffer->cursor_end++;
+    return true;
+  }
+  return false;
+}
+
 int main(int argc, char *argv[]) {
   SetConfigFlags(FLAG_WINDOW_RESIZABLE);
   InitWindow(720, 480, (char *)"SpiderType");
@@ -166,16 +182,29 @@ int main(int argc, char *argv[]) {
 
   while (!WindowShouldClose()) {
     int pressed = GetCharPressed();
+    int key = GetKeyPressed();
     if (pressed != 0) {
       GapBufferInsert(&testBuff, (char)pressed);
     }
-    if (GapBufferGapSize(&testBuff) < 10) {
-      GapBufferResizeGap(&testBuff, 100);
+    if (IsKeyPressed(KEY_BACKSPACE)) {
+      GapBufferBackspace(&testBuff);
     }
+    if (IsKeyPressed(KEY_DELETE)) {
+      GapBufferDelete(&testBuff);
+    }
+    if (IsKeyPressed(KEY_LEFT)) {
+      GapBufferMoveLeft(&testBuff, 1);
+    }
+    if (IsKeyPressed(KEY_RIGHT)) {
+      GapBufferMoveRight(&testBuff, 1);
+    }
+
     BeginDrawing();
     DrawRectangle(0, 0, GetRenderWidth(), GetRenderHeight(), WHITE);
     DrawText((char *)"SpiderType", 10, 10, 20, BLACK);
-    DrawText(GapBufferConcatenate(&testBuff), 10, 30, 20, BLACK);
+    char *concat = GapBufferConcatenate(&testBuff);
+    DrawText(concat, 10, 30, 20, BLACK);
+    free(concat);
     EndDrawing();
   }
   CloseWindow();
