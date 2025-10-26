@@ -31,9 +31,22 @@ void GapBufferInitDebug(gap_buffer *buffer, unsigned int req_size) {
 
 void GapBufferDestroy(gap_buffer *buffer) { free(buffer->data); }
 
-void GapBufferInsert(gap_buffer *buffer, char insert) {
-  buffer->data[buffer->cursor_start] = insert;
-  buffer->cursor_start++;
+bool GapBufferInsert(gap_buffer *buffer, char insert) {
+  if (buffer->cursor_end - buffer->cursor_start > 0) {
+    buffer->data[buffer->cursor_start] = insert;
+    buffer->cursor_start++;
+    return true;
+  }
+  return false;
+}
+
+bool GapBufferInsertArray(gap_buffer *buffer, char *insert) {
+  if (strlen(insert) < buffer->cursor_end - buffer->cursor_start + 1) {
+    strcpy(&buffer->data[buffer->cursor_start], insert);
+    buffer->cursor_start += strlen(insert);
+    return true;
+  }
+  return false;
 }
 
 void GapBufferPrintBufferDebug(gap_buffer *buffer) {
@@ -80,6 +93,60 @@ bool GapBufferMoveRight(gap_buffer *buffer, unsigned int amount) {
   return false;
 }
 
+gap_buffer *GapBufferCopy(gap_buffer *buffer) {
+  gap_buffer *bufferCache = malloc(sizeof(gap_buffer));
+  memcpy(bufferCache, buffer, sizeof(gap_buffer));
+  bufferCache->data = malloc((bufferCache->end + 1) * sizeof(char));
+  memcpy(bufferCache->data, buffer->data,
+         (bufferCache->end + 1) * sizeof(char));
+  return bufferCache;
+}
+
+void GapBufferResizeGap(gap_buffer *buffer, unsigned int gap_size) {
+  int cacheCursorSize = buffer->cursor_end - buffer->cursor_start + 1;
+  int cursorDelta = gap_size - cacheCursorSize;
+  gap_buffer *bufferCache = GapBufferCopy(buffer);
+  GapBufferPrintBufferDebug(bufferCache);
+
+  free(buffer->data);
+  buffer->cursor_end += cursorDelta;
+  buffer->end += cursorDelta;
+  buffer->data = malloc((buffer->end + 1) * sizeof(char));
+  if (buffer->cursor_start - buffer->start > 0) {
+    memcpy(buffer->data, bufferCache->data,
+           (buffer->cursor_start - buffer->start) * sizeof(char));
+  }
+  if (buffer->end - buffer->cursor_end > 0) {
+    memcpy(&buffer->data[buffer->cursor_end + 1],
+           &bufferCache->data[bufferCache->cursor_end + 1],
+           buffer->end - buffer->cursor_end + 1);
+  }
+}
+
+void GapBufferResizeGapDebug(gap_buffer *buffer, unsigned int gap_size) {
+  GapBufferResizeGap(buffer, gap_size);
+  for (int i = buffer->cursor_start; i <= buffer->cursor_end; i++) {
+    buffer->data[i] = '-';
+  }
+}
+
+char *GapBufferConcatenate(gap_buffer *buffer) {
+  char *concat = malloc((buffer->cursor_start - buffer->start + buffer->end -
+                         buffer->cursor_end + 1) *
+                        sizeof(char));
+  if (buffer->cursor_start - buffer->start > 0) {
+    memcpy(concat, buffer->data,
+           (buffer->cursor_start - buffer->start) * sizeof(char));
+  }
+  if (buffer->end - buffer->cursor_end > 0) {
+    memcpy(&concat[buffer->cursor_start], &buffer->data[buffer->cursor_end + 1],
+           buffer->end - buffer->cursor_end + 1);
+  }
+  concat[buffer->cursor_start - buffer->start + buffer->end -
+         buffer->cursor_end] = '\0';
+  return concat;
+}
+
 int main(int argc, char *argv[]) {
   SetConfigFlags(FLAG_WINDOW_RESIZABLE);
   InitWindow(720, 480, (char *)"SpiderType");
@@ -91,11 +158,13 @@ int main(int argc, char *argv[]) {
   printf("Window ready\n");
   gap_buffer testBuff;
   GapBufferInitDebug(&testBuff, 10);
-  GapBufferPrintBufferDebug(&testBuff);
-  GapBufferInsert(&testBuff, 'A');
+  GapBufferInsertArray(&testBuff, (char *)"HELLO");
   GapBufferPrintBufferDebug(&testBuff);
   GapBufferMoveLeft(&testBuff, 1);
   GapBufferPrintBufferDebug(&testBuff);
+  GapBufferResizeGapDebug(&testBuff, 12);
+  GapBufferPrintBufferDebug(&testBuff);
+  printf("%s\n", GapBufferConcatenate(&testBuff));
   while (!WindowShouldClose()) {
     BeginDrawing();
     DrawRectangle(0, 0, GetRenderWidth(), GetRenderHeight(), WHITE);
