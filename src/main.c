@@ -153,6 +153,22 @@ int GapBufferGapSize(gap_buffer *buffer) {
   return buffer->cursor_end - buffer->cursor_start + 1;
 }
 
+bool GapBufferBackspace(gap_buffer *buffer) {
+  if (buffer->cursor_start > buffer->start) {
+    buffer->cursor_start--;
+    return true;
+  }
+  return false;
+}
+
+bool GapBufferDelete(gap_buffer *buffer) {
+  if (buffer->cursor_end < buffer->end) {
+    buffer->cursor_end++;
+    return true;
+  }
+  return false;
+}
+
 int main(int argc, char *argv[]) {
   if(argc>1){
     //TODO handle the case where a file name is passed as an arg
@@ -174,13 +190,29 @@ int main(int argc, char *argv[]) {
     if (pressed != 0) {
       GapBufferInsert(&testBuff, (char)pressed);
     }
-    if (GapBufferGapSize(&testBuff) < 10) {
-      GapBufferResizeGap(&testBuff, 100);
+    switch (GetKeyPressed()) {
+    case KEY_BACKSPACE:
+      GapBufferBackspace(&testBuff);
+      break;
+    case KEY_DELETE:
+      GapBufferDelete(&testBuff);
+      break;
+    case KEY_LEFT:
+      GapBufferMoveLeft(&testBuff, 1);
+      break;
+    case KEY_RIGHT:
+      GapBufferMoveRight(&testBuff, 1);
+      break;
+    default:
+      break;
     }
+
     BeginDrawing();
     DrawRectangle(0, 0, GetRenderWidth(), GetRenderHeight(), WHITE);
     DrawText((char *)"SpiderType", 10, 10, 20, BLACK);
-    DrawText(GapBufferConcatenate(&testBuff), 10, 30, 20, BLACK);
+    char *concat = GapBufferConcatenate(&testBuff);
+    DrawText(concat, 10, 30, 20, BLACK);
+    free(concat);
     EndDrawing();
   }
   CloseWindow();
