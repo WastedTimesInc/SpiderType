@@ -72,7 +72,7 @@ long GbCursorSize(gap_buffer *buffer) {
 // Returns the stored text length
 long GbTextSize(gap_buffer *buffer) {
   if (!GbIsFlushed(buffer)) {
-    return (buffer->end - buffer->cursor_end + buffer->cursor_start);
+    return (buffer->end - buffer->cursor_end + buffer->cursor_start );
   }
   return (buffer->end + 1);
 }
