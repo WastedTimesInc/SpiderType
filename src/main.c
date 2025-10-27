@@ -38,6 +38,14 @@ bool GapBufferInsert(gap_buffer *buffer, char insert) {
     buffer->data[buffer->cursor_start] = insert;
     buffer->cursor_start++;
     return true;
+  }else{
+    buffer->end*=2;
+    buffer->cursor_end*=2;
+    buffer->data=realloc(buffer->data,1+buffer->end);
+    buffer->data[buffer->end]='\0';
+    buffer->data[buffer->cursor_start] = insert;
+    buffer->cursor_start++;
+    return true;
   }
   return false;
 }
@@ -170,9 +178,6 @@ bool GapBufferDelete(gap_buffer *buffer) {
 }
 
 int main(int argc, char *argv[]) {
-  if(argc>1){
-    //TODO handle the case where a file name is passed as an arg
-  }
   SetConfigFlags(FLAG_WINDOW_RESIZABLE);
   InitWindow(720, 480, (char *)"SpiderType");
   while (!IsWindowReady()) {
@@ -183,13 +188,19 @@ int main(int argc, char *argv[]) {
   printf("Window ready\n");
 
   gap_buffer testBuff;
-  GapBufferInit(&testBuff, 100);
-
+  FILE* f = NULL;
+  if(argc>1){
+    f = fopen(argv[1],"rw");
+    fseek(f,0,SEEK_END);
+    GapBufferInit(&testBuff, ftell(f));
+    testBuff.cursor_start+=ftell(f)-1;
+    fseek(f,0,SEEK_SET);
+    fscanf(f,"%s",testBuff.data);
+  }else{
+    GapBufferInit(&testBuff, 10);
+  }
   while (!WindowShouldClose()) {
     int pressed = GetCharPressed();
-    if (pressed != 0) {
-      GapBufferInsert(&testBuff, (char)pressed);
-    }
     switch (GetKeyPressed()) {
     case KEY_BACKSPACE:
       GapBufferBackspace(&testBuff);
@@ -203,7 +214,13 @@ int main(int argc, char *argv[]) {
     case KEY_RIGHT:
       GapBufferMoveRight(&testBuff, 1);
       break;
+    case KEY_ENTER:
+      GapBufferInsert(&testBuff,'\n');
+      break;
     default:
+      if (pressed != 0) {
+        GapBufferInsert(&testBuff, (char)pressed);
+      }
       break;
     }
 
@@ -212,6 +229,8 @@ int main(int argc, char *argv[]) {
     DrawText((char *)"SpiderType", 10, 10, 20, BLACK);
     char *concat = GapBufferConcatenate(&testBuff);
     DrawText(concat, 10, 30, 20, BLACK);
+    //TODO Finish this indicator of where you are in the file
+    //DrawText("_",10+(MeasureText(concat,20)-MeasureText(concat+testBuff.cursor_start,20)),30,20,BLUE);
     free(concat);
     EndDrawing();
   }
