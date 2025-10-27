@@ -179,12 +179,9 @@ int main(int argc, char *argv[]) {
   int tot_line =0;
   int current_line =0;
   char *concat;
-  char* line_buffer;
   int mode = 0;
   int fsize = 0;
   gap_buffer testBuff;
-  int eol =0;
-  int mem_offset =0;
   int x_offset =10;
   FILE* f = NULL;
   if(argc>1){
@@ -266,33 +263,13 @@ int main(int argc, char *argv[]) {
     DrawText((char *)"SpiderType", 10, 10, 20, BLACK);
     concat = GapBufferConcatenate(&testBuff);
     DrawText(concat, 10+x_offset, 30, 20, BLACK);
-    mem_offset =0;
-    eol=testBuff.end;
-    for(int i=testBuff.cursor_start-1;i>0;i--){
-      if(testBuff.data[i]=='\n'){
-        mem_offset=i;
-        break;
-      }
-    }
-    for(int i=testBuff.cursor_end;i<testBuff.end;i++){
-      if(testBuff.data[i]=='\n'){
-        eol=i;
-        break;
-      }
-    }
 
-    //TODO find a better solution
-    line_buffer=malloc(eol-mem_offset+1);
-    memcpy(line_buffer,concat+mem_offset,eol-mem_offset);
-    line_buffer[eol-mem_offset]='\0';
-    //TODO Finish this indicator of where you are in the file
-    DrawText("_",10+x_offset+(MeasureText(line_buffer,20)-MeasureText(line_buffer+(testBuff.cursor_start-mem_offset),20)),30+22*current_line,20,BLUE);
     for(int i =0;i<=tot_line;i++){
       if(i!=current_line){
         DrawText(TextFormat("%i",((i-current_line)*(i>current_line)+(current_line-i)*(i<current_line))),0,35+i*22,10,BLACK);
       }
     }
-      DrawText(TextFormat("%i",current_line),0,35+current_line*22,10,RED);
+    DrawText(TextFormat("%i",current_line),0,35+current_line*22,10,RED);
     free(concat);
     EndDrawing();
   }
