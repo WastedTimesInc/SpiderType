@@ -7,10 +7,10 @@
 
 
 typedef struct gap_buffer_t {
-  unsigned int start;
+  unsigned int start; //useless but harmless
   unsigned int end;
-  unsigned int cursor_start; // relative to buffer start
-  unsigned int cursor_end; // Seems redundant
+  unsigned int cursor_start;
+  unsigned int cursor_end;
   char *data;
 } gap_buffer;
 
@@ -32,6 +32,9 @@ void GapBufferInitDebug(gap_buffer *buffer, unsigned int req_size) {
 }
 
 void GapBufferDestroy(gap_buffer *buffer) { free(buffer->data); }
+
+
+//Refactored this to avoid useless memcpys
 void GapBufferResizeGap(gap_buffer *buffer, unsigned int gap_size) {
   int cacheCursorSize = buffer->cursor_end - buffer->cursor_start;
   int cursorDelta = gap_size - cacheCursorSize;
@@ -121,7 +124,6 @@ gap_buffer *GapBufferCopy(gap_buffer *buffer) {
   return bufferCache;
 }
 
-//Refactoring this to avoid useless memcpys
 
 void GapBufferResizeGapDebug(gap_buffer *buffer, unsigned int gap_size) {
   GapBufferResizeGap(buffer, gap_size);
