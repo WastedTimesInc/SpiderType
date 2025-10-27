@@ -32,6 +32,18 @@ void GapBufferInitDebug(gap_buffer *buffer, unsigned int req_size) {
 }
 
 void GapBufferDestroy(gap_buffer *buffer) { free(buffer->data); }
+void GapBufferResizeGap(gap_buffer *buffer, unsigned int gap_size) {
+  int cacheCursorSize = buffer->cursor_end - buffer->cursor_start;
+  int cursorDelta = gap_size - cacheCursorSize;
+  buffer->data = realloc(buffer->data,(buffer->end +cursorDelta + 1) * sizeof(char));
+  if (buffer->end - buffer->cursor_end > 0) {
+    memcpy(&buffer->data[buffer->cursor_end + cursorDelta],
+           &buffer->data[buffer->cursor_end ],
+           buffer->end - buffer->cursor_end + 1);
+  }
+  buffer->cursor_end += cursorDelta;
+  buffer->end += cursorDelta;
+}
 
 bool GapBufferInsert(gap_buffer *buffer, char insert) {
   if (buffer->cursor_end - buffer->cursor_start > 0) {
@@ -39,10 +51,7 @@ bool GapBufferInsert(gap_buffer *buffer, char insert) {
     buffer->cursor_start++;
     return true;
   }else{
-    buffer->end*=2;
-    buffer->cursor_end*=2;
-    buffer->data=realloc(buffer->data,1+buffer->end);
-    buffer->data[buffer->end]='\0';
+    GapBufferResizeGap(buffer,10);
     buffer->data[buffer->cursor_start] = insert;
     buffer->cursor_start++;
     return true;
@@ -112,26 +121,7 @@ gap_buffer *GapBufferCopy(gap_buffer *buffer) {
   return bufferCache;
 }
 
-void GapBufferResizeGap(gap_buffer *buffer, unsigned int gap_size) {
-  int cacheCursorSize = buffer->cursor_end - buffer->cursor_start + 1;
-  int cursorDelta = gap_size - cacheCursorSize;
-  gap_buffer *bufferCache = GapBufferCopy(buffer);
-  GapBufferPrintBufferDebug(bufferCache);
-
-  free(buffer->data);
-  buffer->cursor_end += cursorDelta;
-  buffer->end += cursorDelta;
-  buffer->data = malloc((buffer->end + 1) * sizeof(char));
-  if (buffer->cursor_start - buffer->start > 0) {
-    memcpy(buffer->data, bufferCache->data,
-           (buffer->cursor_start - buffer->start) * sizeof(char));
-  }
-  if (buffer->end - buffer->cursor_end > 0) {
-    memcpy(&buffer->data[buffer->cursor_end + 1],
-           &bufferCache->data[bufferCache->cursor_end + 1],
-           buffer->end - buffer->cursor_end + 1);
-  }
-}
+//Refactoring this to avoid useless memcpys
 
 void GapBufferResizeGapDebug(gap_buffer *buffer, unsigned int gap_size) {
   GapBufferResizeGap(buffer, gap_size);
@@ -186,16 +176,31 @@ int main(int argc, char *argv[]) {
   SetWindowMinSize(200, 100);
   SetTargetFPS(60);
   printf("Window ready\n");
-
+  int tot_line =0;
+  int current_line =0;
+  char *concat;
+  char* line_buffer;
+  int mode = 0;
+  int fsize = 0;
   gap_buffer testBuff;
+  int eol =0;
+  int mem_offset =0;
+  int x_offset =10;
   FILE* f = NULL;
   if(argc>1){
     f = fopen(argv[1],"rw");
     fseek(f,0,SEEK_END);
-    GapBufferInit(&testBuff, ftell(f));
-    testBuff.cursor_start+=ftell(f)-1;
+    fsize=ftell(f);
+    GapBufferInit(&testBuff, fsize);
+    testBuff.cursor_start+=fsize-1;
     fseek(f,0,SEEK_SET);
     fscanf(f,"%s",testBuff.data);
+    for(int i=0;i<fsize;i++){
+      if(testBuff.data[i]=='\n'){
+        tot_line++;
+      }
+    }
+
   }else{
     GapBufferInit(&testBuff, 10);
   }
@@ -209,17 +214,49 @@ int main(int argc, char *argv[]) {
       GapBufferDelete(&testBuff);
       break;
     case KEY_LEFT:
+      if(current_line!=0&&testBuff.data[testBuff.cursor_start]=='\n'){
+      current_line--;
+      }
       GapBufferMoveLeft(&testBuff, 1);
       break;
     case KEY_RIGHT:
+      if(current_line!=tot_line&&testBuff.data[testBuff.cursor_start]=='\n'){
+        current_line++;
+      }
       GapBufferMoveRight(&testBuff, 1);
       break;
     case KEY_ENTER:
       GapBufferInsert(&testBuff,'\n');
+      tot_line++;
+      x_offset=MeasureText(TextFormat("%i",tot_line),10);
+      current_line++;
       break;
+    case KEY_LEFT_CONTROL:
+      mode +=1;
     default:
       if (pressed != 0) {
-        GapBufferInsert(&testBuff, (char)pressed);
+        switch (mode){
+            case 1:
+              switch(pressed){ //Switch for the CTRL+KEY bindings
+                case 's':
+                  if(f==NULL){
+                    //TODO Handle queriying the user for a new file
+                  }else{
+                    concat = GapBufferConcatenate(&testBuff);
+                    fprintf(f,"%s",concat);
+                    free(concat);
+                    mode-=1;
+                  }
+                  break;
+                default:
+                  mode-=1;
+                  break;
+              }
+              break;
+            default:
+              GapBufferInsert(&testBuff, (char)pressed);
+              break;
+          }
       }
       break;
     }
@@ -227,10 +264,35 @@ int main(int argc, char *argv[]) {
     BeginDrawing();
     DrawRectangle(0, 0, GetRenderWidth(), GetRenderHeight(), WHITE);
     DrawText((char *)"SpiderType", 10, 10, 20, BLACK);
-    char *concat = GapBufferConcatenate(&testBuff);
-    DrawText(concat, 10, 30, 20, BLACK);
+    concat = GapBufferConcatenate(&testBuff);
+    DrawText(concat, 10+x_offset, 30, 20, BLACK);
+    mem_offset =0;
+    eol=testBuff.end;
+    for(int i=testBuff.cursor_start-1;i>0;i--){
+      if(testBuff.data[i]=='\n'){
+        mem_offset=i;
+        break;
+      }
+    }
+    for(int i=testBuff.cursor_end;i<testBuff.end;i++){
+      if(testBuff.data[i]=='\n'){
+        eol=i;
+        break;
+      }
+    }
+
+    //TODO find a better solution
+    line_buffer=malloc(eol-mem_offset+1);
+    memcpy(line_buffer,concat+mem_offset,eol-mem_offset);
+    line_buffer[eol-mem_offset]='\0';
     //TODO Finish this indicator of where you are in the file
-    //DrawText("_",10+(MeasureText(concat,20)-MeasureText(concat+testBuff.cursor_start,20)),30,20,BLUE);
+    DrawText("_",10+x_offset+(MeasureText(line_buffer,20)-MeasureText(line_buffer+(testBuff.cursor_start-mem_offset),20)),30+22*current_line,20,BLUE);
+    for(int i =0;i<=tot_line;i++){
+      if(i!=current_line){
+        DrawText(TextFormat("%i",((i-current_line)*(i>current_line)+(current_line-i)*(i<current_line))),0,35+i*22,10,BLACK);
+      }
+    }
+      DrawText(TextFormat("%i",current_line),0,35+current_line*22,10,RED);
     free(concat);
     EndDrawing();
   }
