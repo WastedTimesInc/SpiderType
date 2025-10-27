@@ -9,7 +9,7 @@ LDFLAGS = -L/usr/lib -lraylib -lm -lpthread -ldl -lrt -lGL -lX11
 TARGET = SpiderType
 
 # Source files
-SRC = src/main.c
+SRC = src/main.c src/gap_buffer.c
 
 # Build rule
 $(TARGET): $(SRC)
