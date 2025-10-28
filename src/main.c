@@ -80,6 +80,7 @@ int main(int argc, char *argv[]) {
   testBuff[current_line].cursor_end=9;
   testBuff[current_line].data[10]='\0';
   int x_offset = 10;
+  int cam_offset[2]={0,0};
   while (!WindowShouldClose()) {
     int pressed = GetCharPressed();
     switch (GetKeyPressed()) {
@@ -94,6 +95,9 @@ int main(int argc, char *argv[]) {
         GbInsertCursor(&testBuff[current_line-1],clamp(0,testBuff[current_line-1].end,testBuff[current_line].cursor_start),10);
         GbFlushBuffer(&testBuff[current_line]);
         current_line--;
+        if((30+22*current_line+cam_offset[1])<20){
+          cam_offset[1]+=22;
+        }
       }
       break;
     case KEY_DOWN:
@@ -101,6 +105,9 @@ int main(int argc, char *argv[]) {
         GbInsertCursor(&testBuff[current_line+1],clamp(0,testBuff[current_line+1].end,testBuff[current_line].cursor_start),10);
         GbFlushBuffer(&testBuff[current_line]);
         current_line++;
+        if((30+22*current_line+cam_offset[1])>GetRenderHeight()-20){
+          cam_offset[1]-=22;
+        }
       }
       break;
     case KEY_LEFT:
@@ -108,6 +115,14 @@ int main(int argc, char *argv[]) {
         GbFlushBuffer(&testBuff[current_line]);
         GbInsertCursor(&testBuff[current_line-1],testBuff[current_line-1].end+1,10);
         current_line-=1;
+        if((30+22*current_line+cam_offset[1])<20){
+          cam_offset[1]+=22;
+        }
+        cam_offset[0]=0;
+      }else{
+        if(cam_offset[0]+10+x_offset+MeasureText(testBuff[current_line].data,20)-MeasureText(testBuff[current_line].data + testBuff[current_line].cursor_start,20)<20){
+          cam_offset[0]+=20;
+        }
       }
       break;
     case KEY_RIGHT:
@@ -115,6 +130,14 @@ int main(int argc, char *argv[]) {
         GbFlushBuffer(&testBuff[current_line]);
         GbInsertCursor(&testBuff[current_line+1],testBuff[current_line+1].end+1,10);
         current_line+=1;
+        if((30+22*current_line+cam_offset[1])>GetRenderHeight()-20){
+          cam_offset[1]-=22;
+        }
+        cam_offset[0]=0;
+      }else{
+        if(cam_offset[0]+10+x_offset+MeasureText(testBuff[current_line].data,20)-MeasureText(testBuff[current_line].data + testBuff[current_line].cursor_start,20)>GetRenderWidth()-20){
+          cam_offset[0]-=20;
+        }
       }
       break;
     case KEY_ENTER:
@@ -136,6 +159,10 @@ int main(int argc, char *argv[]) {
       tot_line++;
       x_offset = MeasureText(TextFormat("%i", tot_line), 10);
       current_line++;
+      cam_offset[0]=0;
+      if((30+22*current_line+cam_offset[1])>GetRenderHeight()-20){
+        cam_offset[1]-=22;
+      }
       break;
     case KEY_LEFT_CONTROL:
       mode += 1;
@@ -169,22 +196,24 @@ int main(int argc, char *argv[]) {
 
     BeginDrawing();
     DrawRectangle(0, 0, GetRenderWidth(), GetRenderHeight(), WHITE);
-    DrawText((char *)"SpiderType", 10, 10, 20, BLACK);
     for (int i = 0; i < tot_line; i++) {
       if (i != current_line) {
-        DrawText(TextFormat("%i", ((i - current_line) * (i > current_line) +(current_line - i) * (i < current_line))), 0, 35 + i * 22, 10, BLACK);
+        DrawText(TextFormat("%i", ((i - current_line) * (i > current_line) +(current_line - i) * (i < current_line))), 0,cam_offset[1] + 35 + i * 22, 10, BLACK);
       }
       if(modif[i]){
         free(concat[i]);
         concat[i] = GbConcatenate(&testBuff[i]);
-        DrawText(concat[i], 10 + x_offset, 30+i*22, 20, BLACK);
+        if(cam_offset[0]+10+x_offset+MeasureText(testBuff[current_line].data,20)-MeasureText(testBuff[current_line].data + testBuff[current_line].cursor_start,20)>GetRenderWidth()-20){
+          cam_offset[0]-=20;
+        }
+        DrawText(concat[i],cam_offset[0] + 10 + x_offset,cam_offset[1]+ 30+i*22, 20, BLACK);
         modif[i]=false;
       }else{
-        DrawText(concat[i], 10 + x_offset, 30+i*22, 20, BLACK);
+        DrawText(concat[i],cam_offset[0] + 10 + x_offset,cam_offset[1]+ 30+i*22, 20, BLACK);
       }
     }
-    DrawText("_",10+x_offset+MeasureText(testBuff[current_line].data,20)-MeasureText(testBuff[current_line].data + testBuff[current_line].cursor_start,20),32+current_line*22,20,BLUE);
-    DrawText(TextFormat("%i", current_line), 0, 35 + current_line * 22, 10, RED);
+    DrawText("_",cam_offset[0]+10+x_offset+MeasureText(testBuff[current_line].data,20)-MeasureText(testBuff[current_line].data + testBuff[current_line].cursor_start,20),cam_offset[1]+32+current_line*22,20,BLUE);
+    DrawText(TextFormat("%i", current_line), 0,cam_offset[1] + 35 + current_line * 22, 10, RED);
     EndDrawing();
   }
   CloseWindow();
