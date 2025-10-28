@@ -123,6 +123,8 @@ int main(int argc, char *argv[]) {
       concat = realloc(concat,(tot_line+1)*sizeof(char*));
       modif = realloc(modif,(tot_line+1)*sizeof(bool));
       memcpy(concat+current_line+2,concat+current_line+1,(tot_line-current_line-1)*sizeof(char*));
+      concat[current_line+1]=malloc(1);
+      concat[current_line+1][0]='\0';
       memcpy(modif+current_line+2,modif+current_line+1,(tot_line-current_line-1)*sizeof(bool));
       modif[current_line+1]=true;
       memcpy(testBuff+current_line+2,testBuff+current_line+1,(tot_line-current_line-1)*sizeof(gap_buffer));
