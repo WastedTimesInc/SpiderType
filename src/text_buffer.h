@@ -13,6 +13,11 @@ typedef struct text_buffer_t {
 void TbInitBuffer(text_buffer *buffer, long num_lines, long req_size);
 bool TbInsertLineAt(text_buffer *buffer, long insert_idx, long req_size);
 
+long TbLinePosition(text_buffer *buffer);
+long TbCursorPosition(text_buffer *buffer);
+
+void TbMoveLeft(text_buffer *buffer);
+
 #ifndef TEXT_BUFFER
 #define TEXT_BUFFER
 
@@ -30,7 +35,7 @@ void TbInitBuffer(text_buffer *buffer, long num_lines, long req_size) {
 }
 
 bool TbInsertLineAt(text_buffer *buffer, long insert_idx, long req_size) {
-  if (insert_idx < num_lines) {
+  if (insert_idx < buffer->num_lines) {
     GbFlushBuffer(buffer->buffer_lines[buffer->current_line]);
     buffer->buffer_lines = realloc(
         buffer->buffer_lines, (buffer->num_lines + 1) * sizeof(gap_buffer *));
@@ -52,6 +57,19 @@ bool TbInsertLineAt(text_buffer *buffer, long insert_idx, long req_size) {
         GbConcatenate(buffer->buffer_lines[insert_idx + 1]);
     buffer->is_modified[insert_idx + 1] = false;
     return true;
+  }
+  return false;
+}
+
+long TbLinePosition(text_buffer *buffer) { return buffer->current_line; }
+
+long TbCursorPosition(text_buffer *buffer) {
+  return GbCursorPosition(buffer->buffer_lines[buffer->current_line]);
+}
+
+void TbMoveLeft(text_buffer *buffer) {
+  if (GbCursorPosition(buffer->buffer_lines[buffer->current_line]) == 0) {
+    GbFlushBuffer(buffer->buffer_lines[buffer->current_line]);
   }
 }
 

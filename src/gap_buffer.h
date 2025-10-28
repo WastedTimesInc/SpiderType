@@ -54,6 +54,8 @@ long GbCursorSize(gap_buffer *buffer);
 // Returns the text length stored in an open or flushed buffer
 long GbTextSize(gap_buffer *buffer);
 
+long GbCursorPosition(gap_buffer *buffer);
+
 // Returns a pointer to a copied buffer
 gap_buffer *GbCopyBuffer(gap_buffer *buffer);
 
@@ -148,6 +150,12 @@ long GbTextSize(gap_buffer *buffer) {
   return (buffer->end + 1);
 }
 
+long GbCursorPosition(gap_buffer *buffer) {
+  if (!GbIsFlushed(buffer)) {
+    return buffer->cursor_start;
+  }
+  return -1;
+}
 // Copies buffer
 gap_buffer *GbCopyBuffer(gap_buffer *buffer) {
   gap_buffer *bufferCopy = malloc(sizeof(gap_buffer));
