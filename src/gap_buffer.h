@@ -113,7 +113,6 @@ gap_buffer *GbInitFlushBufferFromString(char *input) {
 // Destroys things
 void GbDestroy(gap_buffer *buffer) {
   free(buffer->data);
-  free(buffer);
 }
 
 // Checks if a buffer is in its flushed state
@@ -173,6 +172,7 @@ bool GbFlushBuffer(gap_buffer *buffer) {
 // Resizes cursor to given size
 //
 // Confrmed working to gap_size > current_gap_size
+// TODO don't use endData
 void GbResizeCursor(gap_buffer *buffer, long gap_size) {
   char *endData = malloc((buffer->end - buffer->cursor_end + 1));
   strcpy(endData, &buffer->data[buffer->cursor_end + 1]);
@@ -182,6 +182,7 @@ void GbResizeCursor(gap_buffer *buffer, long gap_size) {
   buffer->end += gapSizeDelta;
   strcpy(&buffer->data[buffer->cursor_end + 1], endData);
   buffer->data[buffer->end + 1] = '\0';
+  free(endData);
 }
 
 // Inserts cursor to a given position in a flushed buffer

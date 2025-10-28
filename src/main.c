@@ -54,14 +54,6 @@ int main(int argc, char *argv[]) {
   FILE *f = NULL;
   char *loadStr;
   if (argc > 1) {
-    loadStr = LoadStringFromFile(f, argv[1]);
-    unsigned long num_lines;
-    char **splitLines = SplitStringsByLine(loadStr, &num_lines);
-    gap_buffer **textBuffer = malloc((num_lines) * sizeof(gap_buffer));
-    for (int i = 0; i < num_lines; i++) {
-      textBuffer[i] = GbInitFlushBufferFromString(splitLines[i]);
-      GbPrintBufferDebug(textBuffer[i]);
-    }
   }
   SetConfigFlags(FLAG_WINDOW_RESIZABLE);
   InitWindow(720, 480, (char *)"SpiderType");
@@ -73,7 +65,11 @@ int main(int argc, char *argv[]) {
   printf("Window ready\n");
   int tot_line = 1;
   int current_line = 0;
-  char *concat;
+  bool* modif = malloc(sizeof(bool));
+  modif[0]=false;
+  char **concat = malloc(sizeof(char*));
+  concat[0]=malloc(1);
+  concat[0][0]='\0';
   int mode = 0;
   bool succes = false;
   int fsize = 0;
@@ -124,6 +120,11 @@ int main(int argc, char *argv[]) {
     case KEY_ENTER:
       GbFlushBuffer(&testBuff[current_line]);
       testBuff = realloc(testBuff,(tot_line+1)*sizeof(gap_buffer));
+      concat = realloc(concat,(tot_line+1)*sizeof(char*));
+      modif = realloc(modif,(tot_line+1)*sizeof(bool));
+      memcpy(concat+current_line+2,concat+current_line+1,(tot_line-current_line-1)*sizeof(char*));
+      memcpy(modif+current_line+2,modif+current_line+1,(tot_line-current_line-1)*sizeof(bool));
+      modif[current_line+1]=true;
       memcpy(testBuff+current_line+2,testBuff+current_line+1,(tot_line-current_line-1)*sizeof(gap_buffer));
       testBuff[current_line+1].cursor_start=0;
       testBuff[current_line+1].end=9;
@@ -157,6 +158,7 @@ int main(int argc, char *argv[]) {
           if(!succes){
             perror("Error : Failed to add char after resizing!\n");
           }
+          modif[current_line]=true;
           break;
         }
       }
@@ -170,14 +172,23 @@ int main(int argc, char *argv[]) {
       if (i != current_line) {
         DrawText(TextFormat("%i", ((i - current_line) * (i > current_line) +(current_line - i) * (i < current_line))), 0, 35 + i * 22, 10, BLACK);
       }
-      concat = GbConcatenate(&testBuff[i]);
-      DrawText(concat, 10 + x_offset, 30+i*22, 20, BLACK);
-      free(concat);
+      if(modif[i]){
+        free(concat[i]);
+        concat[i] = GbConcatenate(&testBuff[i]);
+        DrawText(concat[i], 10 + x_offset, 30+i*22, 20, BLACK);
+        modif[i]=false;
+      }else{
+        DrawText(concat[i], 10 + x_offset, 30+i*22, 20, BLACK);
+      }
     }
     DrawText("_",10+x_offset+MeasureText(testBuff[current_line].data,20)-MeasureText(testBuff[current_line].data + testBuff[current_line].cursor_start,20),32+current_line*22,20,BLUE);
     DrawText(TextFormat("%i", current_line), 0, 35 + current_line * 22, 10, RED);
     EndDrawing();
   }
   CloseWindow();
+  for(int i=0;i<tot_line;i++){
+    GbDestroy(&testBuff[i]);
+  }
+  free(testBuff);
   return EXIT_SUCCESS;
 }
