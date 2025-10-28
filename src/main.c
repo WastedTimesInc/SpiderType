@@ -22,55 +22,51 @@ int main(int argc, char *argv[]) {
   SetWindowMinSize(200, 100);
   SetTargetFPS(60);
   printf("Window ready\n");
-  int tot_line = 0;
+  int tot_line = 1;
   int current_line = 0;
   char *concat;
   int mode = 0;
+  bool succes = false;
   int fsize = 0;
-  gap_buffer testBuff;
+  gap_buffer* testBuff = malloc(sizeof(gap_buffer));
+  testBuff[current_line].cursor_start=0;
+  testBuff[current_line].end=9;
+  testBuff[current_line].data=malloc(11);
+  testBuff[current_line].cursor_end=9;
+  testBuff[current_line].data[10]='\0';
   int x_offset = 10;
   FILE *f = NULL;
-  if (argc > 1) {
-    f = fopen(argv[1], "rw");
-    fseek(f, 0, SEEK_END);
-    fsize = ftell(f);
-    GapBufferInit(&testBuff, fsize);
-    testBuff.cursor_start += fsize - 1;
-    fseek(f, 0, SEEK_SET);
-    fscanf(f, "%s", testBuff.data);
-    for (int i = 0; i < fsize; i++) {
-      if (testBuff.data[i] == '\n') {
-        tot_line++;
-      }
-    }
-
-  } else {
-    GapBufferInit(&testBuff, 10);
-  }
   while (!WindowShouldClose()) {
     int pressed = GetCharPressed();
     switch (GetKeyPressed()) {
     case KEY_BACKSPACE:
-      GapBufferBackspace(&testBuff);
+      GbBackspace(&testBuff[current_line]);
       break;
     case KEY_DELETE:
-      GapBufferDelete(&testBuff);
+      GbDelete(&testBuff[current_line]);
       break;
     case KEY_LEFT:
-      if (current_line != 0 && testBuff.data[testBuff.cursor_start] == '\n') {
-        current_line--;
+      if(!GbMoveLeft(&testBuff[current_line])&&(current_line!=0)){
+        GbFlushBuffer(&testBuff[current_line]);
+        GbInsertCursor(&testBuff[current_line-1],testBuff[current_line-1].end+1,10);
+        current_line-=1;
       }
-      GapBufferMoveLeft(&testBuff, 1);
       break;
     case KEY_RIGHT:
-      if (current_line != tot_line &&
-          testBuff.data[testBuff.cursor_start] == '\n') {
-        current_line++;
+      if(!GbMoveRight(&testBuff[current_line])&&(current_line!=(tot_line-1))){
+        GbFlushBuffer(&testBuff[current_line]);
+        GbInsertCursor(&testBuff[current_line+1],testBuff[current_line+1].end+1,10);
+        current_line+=1;
       }
-      GapBufferMoveRight(&testBuff, 1);
       break;
     case KEY_ENTER:
-      GapBufferInsert(&testBuff, '\n');
+      GbFlushBuffer(&testBuff[current_line]);
+      testBuff = realloc(testBuff,(tot_line+1)*sizeof(gap_buffer));
+      testBuff[current_line+1].cursor_start=0;
+      testBuff[current_line+1].end=9;
+      testBuff[current_line+1].data=malloc(11);
+      testBuff[current_line+1].cursor_end=9;
+      testBuff[current_line+1].data[10]='\0';
       tot_line++;
       x_offset = MeasureText(TextFormat("%i", tot_line), 10);
       current_line++;
@@ -83,14 +79,6 @@ int main(int argc, char *argv[]) {
         case 1:
           switch (pressed) { // Switch for the CTRL+KEY bindings
           case 's':
-            if (f == NULL) {
-              // TODO Handle queriying the user for a new file
-            } else {
-              concat = GapBufferConcatenate(&testBuff);
-              fprintf(f, "%s", concat);
-              free(concat);
-              mode -= 1;
-            }
             break;
           default:
             mode -= 1;
@@ -98,7 +86,14 @@ int main(int argc, char *argv[]) {
           }
           break;
         default:
-          GapBufferInsert(&testBuff, (char)pressed);
+          succes = GbInsertChar(&testBuff[current_line], (char)pressed);
+          if(!succes){
+            GbResizeCursor(&testBuff[current_line],10);
+            succes = GbInsertChar(&testBuff[current_line], (char)pressed);
+          }
+          if(!succes){
+            perror("Error : Failed to add char after resizing!\n");
+          }
           break;
         }
       }
@@ -108,19 +103,19 @@ int main(int argc, char *argv[]) {
     BeginDrawing();
     DrawRectangle(0, 0, GetRenderWidth(), GetRenderHeight(), WHITE);
     DrawText((char *)"SpiderType", 10, 10, 20, BLACK);
-    concat = GapBufferConcatenate(&testBuff);
-    DrawText(concat, 10 + x_offset, 30, 20, BLACK);
 
-    for (int i = 0; i <= tot_line; i++) {
+    for (int i = 0; i < tot_line; i++) {
       if (i != current_line) {
         DrawText(TextFormat("%i", ((i - current_line) * (i > current_line) +
                                    (current_line - i) * (i < current_line))),
                  0, 35 + i * 22, 10, BLACK);
       }
+      concat = GbConcatenate(&testBuff[i]);
+      DrawText(concat, 11 + x_offset, 30+i*22, 20, BLACK);
+      free(concat);
     }
     DrawText(TextFormat("%i", current_line), 0, 35 + current_line * 22, 10,
              RED);
-    free(concat);
     EndDrawing();
   }
   CloseWindow();

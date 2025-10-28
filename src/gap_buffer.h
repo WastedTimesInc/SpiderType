@@ -177,7 +177,7 @@ void GbResizeCursor(gap_buffer *buffer, long gap_size) {
   char *endData = malloc((buffer->end - buffer->cursor_end + 1));
   strcpy(endData, &buffer->data[buffer->cursor_end + 1]);
   long gapSizeDelta = gap_size - GbCursorSize(buffer);
-  buffer->data = realloc(buffer->data, gapSizeDelta * sizeof(char));
+  buffer->data = realloc(buffer->data, (buffer->end + gapSizeDelta + 2) * sizeof(char));
   buffer->cursor_end += gapSizeDelta;
   buffer->end += gapSizeDelta;
   strcpy(&buffer->data[buffer->cursor_end + 1], endData);
@@ -312,6 +312,7 @@ char *GbConcatenate(gap_buffer *buffer) {
   } else {
     char *concat = malloc((GbTextSize(buffer) + 1) * sizeof(char));
     strcpy(concat, buffer->data);
+    concat[GbTextSize(buffer)]='\0';
     return concat;
   }
 }
