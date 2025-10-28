@@ -54,7 +54,7 @@ int main(int argc, char *argv[]) {
       GbPrintBufferDebug(textBuffer[i]);
     }
   }
-  /*SetConfigFlags(FLAG_WINDOW_RESIZABLE);
+  SetConfigFlags(FLAG_WINDOW_RESIZABLE);
   InitWindow(720, 480, (char *)"SpiderType");
   while (!IsWindowReady()) {
   };
