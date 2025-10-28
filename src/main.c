@@ -2,19 +2,59 @@
 #include <raylib.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 char *LoadStringFromFile(FILE *f, char *path) {
-  f = fopen(path, "rw");
+  f = fopen(path, "r");
   fseek(f, 0, SEEK_END);
   long fsize = ftell(f);
   char *returnVal = malloc((fsize + 1) * sizeof(char));
-  fseek(f, 0, SEEK_SET);
-  fscanf(f, "%s", returnVal);
+  rewind(f);
+  fread(returnVal, 1, fsize, f);
+  returnVal[fsize] = '\0';
   return returnVal;
 }
 
+char **SplitStringsByLine(char *input, unsigned long *num_lines) {
+  *num_lines = 1;
+  long *lineBreakPositions = malloc(*num_lines * sizeof(long));
+  lineBreakPositions[*num_lines - 1] = -1;
+  for (int i = 0; i < strlen(input); i++) {
+    if (input[i] == '\n') {
+      *num_lines += 1;
+      lineBreakPositions =
+          realloc(lineBreakPositions, *num_lines * sizeof(long));
+      lineBreakPositions[*num_lines - 1] = i;
+    }
+  }
+  lineBreakPositions =
+      realloc(lineBreakPositions, (*num_lines + 1) * sizeof(long));
+  lineBreakPositions[*num_lines] = strlen(input);
+  char **stringArr = malloc(*num_lines * sizeof(char *));
+  for (int i = 0; i < *num_lines; i++) {
+    long stringSize = lineBreakPositions[i + 1] - lineBreakPositions[i] - 1;
+    stringArr[i] = malloc((stringSize + 1) * sizeof(char));
+    memcpy(stringArr[i], &input[lineBreakPositions[i] + 1],
+           stringSize * sizeof(char));
+    stringArr[i][stringSize] = '\0';
+  }
+  return stringArr;
+}
+
 int main(int argc, char *argv[]) {
-  SetConfigFlags(FLAG_WINDOW_RESIZABLE);
+  FILE *f = NULL;
+  char *loadStr;
+  if (argc > 1) {
+    loadStr = LoadStringFromFile(f, argv[1]);
+    unsigned long num_lines;
+    char **splitLines = SplitStringsByLine(loadStr, &num_lines);
+    gap_buffer **textBuffer = malloc((num_lines) * sizeof(gap_buffer));
+    for (int i = 0; i < num_lines; i++) {
+      textBuffer[i] = GbInitFlushBufferFromString(splitLines[i]);
+      GbPrintBufferDebug(textBuffer[i]);
+    }
+  }
+  /*SetConfigFlags(FLAG_WINDOW_RESIZABLE);
   InitWindow(720, 480, (char *)"SpiderType");
   while (!IsWindowReady()) {
   };
@@ -123,6 +163,6 @@ int main(int argc, char *argv[]) {
     free(concat);
     EndDrawing();
   }
-  CloseWindow();
+  CloseWindow();*/
   return EXIT_SUCCESS;
 }
