@@ -51,10 +51,6 @@ int clamp(int bot, int top, int val) {
 }
 
 int main(int argc, char *argv[]) {
-  FILE *f = NULL;
-  char *loadStr;
-  if (argc > 1) {
-  }
   SetConfigFlags(FLAG_WINDOW_RESIZABLE);
   InitWindow(720, 480, (char *)"SpiderType");
   while (!IsWindowReady()) {
@@ -62,7 +58,6 @@ int main(int argc, char *argv[]) {
   SetWindowMaxSize(3480, 2160);
   SetWindowMinSize(200, 100);
   SetTargetFPS(60);
-  printf("Window ready\n");
   int tot_line = 1;
   int current_line = 0;
   bool *modif = malloc(sizeof(bool));

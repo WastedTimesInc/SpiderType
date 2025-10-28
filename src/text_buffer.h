@@ -1,6 +1,6 @@
+#pragma once
 #include "gap_buffer.h"
 #include <stdbool.h>
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -212,6 +212,10 @@ void TbMoveDown(text_buffer *buffer) {
 bool TbInsertChar(text_buffer *buffer, char insert) {
   bool success =
       GbInsertChar(buffer->buffer_lines[buffer->current_line], insert);
+  if (success) {
+    buffer->concat_lines[buffer->current_line] =
+        GbConcatenate(buffer->buffer_lines[buffer->current_line]);
+  }
   return success;
 }
 #endif
