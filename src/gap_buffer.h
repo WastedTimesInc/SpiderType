@@ -54,6 +54,9 @@ long GbCursorSize(gap_buffer *buffer);
 // Returns the text length stored in an open or flushed buffer
 long GbTextSize(gap_buffer *buffer);
 
+bool GbCursorEndOfLine(gap_buffer *buffer);
+bool GbCursorStartOfLine(gap_buffer *buffer);
+
 long GbCursorPosition(gap_buffer *buffer);
 
 // Returns a pointer to a copied buffer
@@ -148,6 +151,20 @@ long GbTextSize(gap_buffer *buffer) {
     return (buffer->end - buffer->cursor_end + buffer->cursor_start);
   }
   return (buffer->end + 1);
+}
+
+bool GbCursorStartOfLine(gap_buffer *buffer) {
+  if (buffer->cursor_start == 0) {
+    return true;
+  }
+  return false;
+}
+
+bool GbCursorEndOfLine(gap_buffer *buffer) {
+  if (buffer->cursor_end == buffer->end) {
+    return true;
+  }
+  return false;
 }
 
 long GbCursorPosition(gap_buffer *buffer) {
