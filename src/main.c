@@ -41,6 +41,15 @@ char **SplitStringsByLine(char *input, unsigned long *num_lines) {
   return stringArr;
 }
 
+int clamp(int bot,int top,int val){
+  if(val>top){
+    return top;
+  }else if(val<bot){
+    return bot;
+  }
+  return val;
+}
+
 int main(int argc, char *argv[]) {
   FILE *f = NULL;
   char *loadStr;
@@ -75,7 +84,6 @@ int main(int argc, char *argv[]) {
   testBuff[current_line].cursor_end=9;
   testBuff[current_line].data[10]='\0';
   int x_offset = 10;
-  FILE *f = NULL;
   while (!WindowShouldClose()) {
     int pressed = GetCharPressed();
     switch (GetKeyPressed()) {
@@ -84,6 +92,20 @@ int main(int argc, char *argv[]) {
       break;
     case KEY_DELETE:
       GbDelete(&testBuff[current_line]);
+      break;
+    case KEY_UP:
+      if((current_line!=0)){
+        GbInsertCursor(&testBuff[current_line-1],clamp(0,testBuff[current_line-1].end,testBuff[current_line].cursor_start),10);
+        GbFlushBuffer(&testBuff[current_line]);
+        current_line--;
+      }
+      break;
+    case KEY_DOWN:
+      if((current_line!=tot_line-1)){
+        GbInsertCursor(&testBuff[current_line+1],clamp(0,testBuff[current_line+1].end,testBuff[current_line].cursor_start),10);
+        GbFlushBuffer(&testBuff[current_line]);
+        current_line++;
+      }
       break;
     case KEY_LEFT:
       if(!GbMoveLeft(&testBuff[current_line])&&(current_line!=0)){
@@ -102,9 +124,10 @@ int main(int argc, char *argv[]) {
     case KEY_ENTER:
       GbFlushBuffer(&testBuff[current_line]);
       testBuff = realloc(testBuff,(tot_line+1)*sizeof(gap_buffer));
+      memcpy(testBuff+current_line+2,testBuff+current_line+1,(tot_line-current_line-1)*sizeof(gap_buffer));
       testBuff[current_line+1].cursor_start=0;
       testBuff[current_line+1].end=9;
-      testBuff[current_line+1].data=malloc(11);
+      testBuff[current_line+1].data=calloc(11,sizeof(char));
       testBuff[current_line+1].cursor_end=9;
       testBuff[current_line+1].data[10]='\0';
       tot_line++;
@@ -143,21 +166,18 @@ int main(int argc, char *argv[]) {
     BeginDrawing();
     DrawRectangle(0, 0, GetRenderWidth(), GetRenderHeight(), WHITE);
     DrawText((char *)"SpiderType", 10, 10, 20, BLACK);
-
     for (int i = 0; i < tot_line; i++) {
       if (i != current_line) {
-        DrawText(TextFormat("%i", ((i - current_line) * (i > current_line) +
-                                   (current_line - i) * (i < current_line))),
-                 0, 35 + i * 22, 10, BLACK);
+        DrawText(TextFormat("%i", ((i - current_line) * (i > current_line) +(current_line - i) * (i < current_line))), 0, 35 + i * 22, 10, BLACK);
       }
       concat = GbConcatenate(&testBuff[i]);
-      DrawText(concat, 11 + x_offset, 30+i*22, 20, BLACK);
+      DrawText(concat, 10 + x_offset, 30+i*22, 20, BLACK);
       free(concat);
     }
-    DrawText(TextFormat("%i", current_line), 0, 35 + current_line * 22, 10,
-             RED);
+    DrawText("_",10+x_offset+MeasureText(testBuff[current_line].data,20)-MeasureText(testBuff[current_line].data + testBuff[current_line].cursor_start,20),32+current_line*22,20,BLUE);
+    DrawText(TextFormat("%i", current_line), 0, 35 + current_line * 22, 10, RED);
     EndDrawing();
   }
-  CloseWindow();*/
+  CloseWindow();
   return EXIT_SUCCESS;
 }
