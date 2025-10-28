@@ -37,8 +37,6 @@ typedef struct gap_buffer_t {
   char *data;
 } gap_buffer;
 
-// Initialize an empty buffer
-gap_buffer *GbInitEmptyBuffer();
 // Initialize an empty open buffer with a given cursor width
 gap_buffer *GbInitBuffer(long req_size);
 // Initialize a flushed buffer from a string passed as input
@@ -83,8 +81,6 @@ char *GbConcatenate(gap_buffer *buffer);
 
 #ifndef GAP_BUFFER
 #define GAP_BUFFER
-
-
 
 // Inits a buffer to a passed size, the whole buffer is a cursor_start
 //
@@ -139,7 +135,7 @@ long GbCursorSize(gap_buffer *buffer) {
 // NOTE length in bytes not pixels
 long GbTextSize(gap_buffer *buffer) {
   if (!GbIsFlushed(buffer)) {
-    return (buffer->end - buffer->cursor_end + buffer->cursor_start );
+    return (buffer->end - buffer->cursor_end + buffer->cursor_start);
   }
   return (buffer->end + 1);
 }
@@ -159,7 +155,6 @@ gap_buffer *GbCopyBuffer(gap_buffer *buffer) {
 // Flushes buffer by first shifting buffer end data to concatenate it together
 // then realloc to trim the buffer
 //
-//  TODO : Confirm if memcpy and realloc implementation is correct and safe
 bool GbFlushBuffer(gap_buffer *buffer) {
   if (GbIsFlushed(buffer)) {
     return false;
@@ -167,7 +162,7 @@ bool GbFlushBuffer(gap_buffer *buffer) {
   memcpy(&buffer->data[buffer->cursor_start],
          &buffer->data[buffer->cursor_end + 1],
          buffer->end - buffer->cursor_end);
-  buffer->data = realloc(buffer->data, GbTextSize(buffer)+1 * sizeof(char));
+  buffer->data = realloc(buffer->data, (GbTextSize(buffer) + 1) * sizeof(char));
   buffer->end -= GbCursorSize(buffer);
   buffer->data[buffer->end + 1] = '\0';
   buffer->cursor_start = -1;
@@ -178,7 +173,6 @@ bool GbFlushBuffer(gap_buffer *buffer) {
 // Resizes cursor to given size
 //
 // Confrmed working to gap_size > current_gap_size
-//  TODO : Fix for gap_size < current_gap_size, currently broken
 void GbResizeCursor(gap_buffer *buffer, long gap_size) {
   char *endData = malloc((buffer->end - buffer->cursor_end + 1));
   strcpy(endData, &buffer->data[buffer->cursor_end + 1]);
@@ -195,11 +189,12 @@ void GbInsertCursor(gap_buffer *buffer, long insert_position, long gap_size) {
   if (!GbIsFlushed(buffer)) {
     GbFlushBuffer(buffer);
   }
-  buffer->data=realloc(buffer->data,GbTextSize(buffer)+gap_size+1);
+  buffer->data = realloc(buffer->data, GbTextSize(buffer) + gap_size + 1);
   buffer->cursor_start = insert_position;
   buffer->cursor_end = insert_position + gap_size - 1;
   buffer->end += gap_size;
-  memcpy(buffer->data+buffer->cursor_end+1,buffer->data+insert_position,buffer->end-buffer->cursor_end);
+  memcpy(&buffer->data[buffer->cursor_end + 1], &buffer->data[insert_position],
+         (buffer->end - buffer->cursor_end) * sizeof(char));
 }
 
 // Prints alot of stuff, doesn't really need messing with unless its to add more
