@@ -95,6 +95,15 @@ int main(int argc, char *argv[]) {
     DrawRectangle(0, 0, GetRenderWidth(), GetRenderHeight(), WHITE);
     for (int i = 0; i < mainBuffer->num_lines; i++) {
       DrawText(mainBuffer->concat_lines[i], 10, 10 + (22 * i), 20, BLACK);
+
+      char *lineNum = malloc(20 * sizeof(char));
+      if (TbLinePosition(mainBuffer) == i) {
+        sprintf(lineNum, "%ld", TbLinePosition(mainBuffer) + 1);
+      } else {
+        long delta = abs(i - TbLinePosition(mainBuffer));
+        sprintf(lineNum, "%ld", delta);
+      }
+      DrawText(lineNum, 3, 10 + 6 + (22 * i), 10, BLACK);
     }
     EndDrawing();
   }
