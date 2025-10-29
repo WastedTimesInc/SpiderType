@@ -282,6 +282,7 @@ void TbMoveDown(text_buffer *buffer) {
   }
 }
 
+// TODO Fix line splitting when pressing enter inside a line
 void TbEnter(text_buffer *buffer) {
   if (GbCursorEndOfLine(buffer->buffer_lines[buffer->current_line])) {
     TbInsertLineAt(buffer, buffer->current_line, buffer->cursor_resize);
