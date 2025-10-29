@@ -5,30 +5,53 @@
 #include <string.h>
 
 typedef struct text_buffer_t {
-  gap_buffer **buffer_lines;
-  char **concat_lines;
-  bool *is_modified;
-  long current_line;
-  long num_lines;
-  long last_cursor_pos;
+  gap_buffer **buffer_lines; // Array of gap_buffer pointers
+  char **concat_lines;       // Array of concatenated gap_buffer pointers
+  bool *is_modified;         // Array of boolean flag modified, probably useless
+  long current_line; // Current line index, this stores the array index, ie
+                     // starts at 0
+  long num_lines; // Number of lines in the text buffer, this is NOT an index,
+                  // start at 1
+  long last_cursor_pos; // Last cursor position, used for up down movement to
+                        // preserve position
 } text_buffer;
 
+// Init a text buffer with num_lines and req_size determines the default
+// gap_buffer size
 void TbInitBuffer(text_buffer *buffer, long num_lines, long req_size);
+// Insert a line to the right, ie below, insert_idx
 bool TbInsertLineAt(text_buffer *buffer, long insert_idx, long req_size);
+// Remove the line at remove_idx
 bool TbRemoveLineAt(text_buffer *buffer, long remove_idx);
 
+// Returns current_line which is an index
 long TbLinePosition(text_buffer *buffer);
+// Returns the cursor index of the current_line
 long TbCursorPosition(text_buffer *buffer);
+// Returns true if current_line is at the end of the buffer
 bool TbEndOfBuffer(text_buffer *buffer);
+// Returns ture if the current_line is at the start of the buffer
 bool TbStartOfBuffer(text_buffer *buffer);
 
+// Safe move left that jumps line if the cursor is at the start of current_line
 void TbMoveLeft(text_buffer *buffer);
+// Safe move right that jumps line if the cursor is at the end of current_line
 void TbMoveRight(text_buffer *buffer);
+// Safe backspace the deletes the current line if the cursor is at the start of
+// the line, currently doesn't support merging two lines should there be content
+// on current_line and backspace is called with the cursor at the start of the
+// line
 void TbBackspace(text_buffer *buffer);
+// Safe delete, similarly to backspace, this is a non complete implementation
 void TbDelete(text_buffer *buffer);
+// Move up using last_cursor_pos to preserve cursor position when moving up past
+// lines that aren't long enough
 void TbMoveUp(text_buffer *buffer);
+// Move down using last_cursor_pos to preserve cursor position when moving down
+// past lines that aren't long enough
 void TbMoveDown(text_buffer *buffer);
 
+// Safe char insert
 bool TbInsertChar(text_buffer *buffer, char insert);
 
 #ifndef TEXT_BUFFER
