@@ -47,12 +47,16 @@ gap_buffer *GbInitFlushBufferFromString(char *input);
 // Destroy the buffer passed
 void GbDestroy(gap_buffer *buffer);
 
+void GbOverwriteWithString(gap_buffer *buffer, char *input);
+
 // Checks if a buffer is flushed
 bool GbIsFlushed(gap_buffer *buffer);
 // Returns the cursor width in an open buffer
 long GbCursorSize(gap_buffer *buffer);
 // Returns the text length stored in an open or flushed buffer
 long GbTextSize(gap_buffer *buffer);
+long GbTextSizeLeft(gap_buffer *buffer);
+long GbTextSizeRight(gap_buffer *buffer);
 
 bool GbCursorEndOfLine(gap_buffer *buffer);
 bool GbCursorStartOfLine(gap_buffer *buffer);
@@ -85,6 +89,8 @@ bool GbBackspace(gap_buffer *buffer);
 
 // Returns the concatenated string of a buffer
 char *GbConcatenate(gap_buffer *buffer);
+char *GbConcatenateLeft(gap_buffer *buffer);
+char *GbConcatenateRight(gap_buffer *buffer);
 
 #ifndef GAP_BUFFER
 #define GAP_BUFFER
@@ -93,7 +99,6 @@ char *GbConcatenate(gap_buffer *buffer);
 //
 // Should be self explanatory
 void GbInitBufferByPointer(gap_buffer *buffer, long req_size) {
-  buffer = malloc(sizeof(gap_buffer));
   buffer->cursor_start = 0;
   buffer->end = req_size - 1;
   buffer->cursor_end = buffer->end;
@@ -102,7 +107,7 @@ void GbInitBufferByPointer(gap_buffer *buffer, long req_size) {
 }
 
 gap_buffer *GbInitBuffer(long req_size) {
-  gap_buffer *buffer;
+  gap_buffer *buffer = malloc(sizeof(gap_buffer));
   GbInitBufferByPointer(buffer, req_size);
   return buffer;
 }
@@ -111,7 +116,6 @@ gap_buffer *GbInitBuffer(long req_size) {
 //
 // Again should be self explanatory
 void GbInitFlushBufferFromStringByPointer(gap_buffer *buffer, char *input) {
-  buffer = malloc(sizeof(gap_buffer));
   buffer->cursor_start = -1;
   buffer->cursor_end = -1;
   long inputLength = strlen(input);
@@ -122,12 +126,17 @@ void GbInitFlushBufferFromStringByPointer(gap_buffer *buffer, char *input) {
 }
 
 gap_buffer *GbInitFlushBufferFromString(char *input) {
-  gap_buffer *buffer;
+  gap_buffer *buffer = malloc(sizeof(gap_buffer));
   GbInitFlushBufferFromStringByPointer(buffer, input);
   return buffer;
 }
 // Destroys things
 void GbDestroy(gap_buffer *buffer) { free(buffer->data); }
+
+void GbOverwriteWithString(gap_buffer *buffer, char *input) {
+  free(buffer);
+  buffer = GbInitFlushBufferFromString(input);
+}
 
 // Checks if a buffer is in its flushed state
 //
@@ -149,6 +158,20 @@ long GbCursorSize(gap_buffer *buffer) {
 long GbTextSize(gap_buffer *buffer) {
   if (!GbIsFlushed(buffer)) {
     return (buffer->end - buffer->cursor_end + buffer->cursor_start);
+  }
+  return (buffer->end + 1);
+}
+
+long GbTextSizeLeft(gap_buffer *buffer) {
+  if (!GbIsFlushed(buffer)) {
+    return buffer->cursor_start;
+  }
+  return (buffer->end + 1);
+}
+
+long GbTextSizeRight(gap_buffer *buffer) {
+  if (!GbIsFlushed(buffer)) {
+    return (buffer->end - buffer->cursor_end);
   }
   return (buffer->end + 1);
 }
@@ -351,5 +374,26 @@ char *GbConcatenate(gap_buffer *buffer) {
     concat[GbTextSize(buffer)] = '\0';
     return concat;
   }
+}
+
+char *GbConcatenateLeft(gap_buffer *buffer) {
+  if (GbIsFlushed(buffer)) {
+    return GbConcatenate(buffer);
+  }
+  char *concat = malloc((buffer->cursor_start + 1) * sizeof(char));
+  memcpy(concat, buffer->data, buffer->cursor_start * sizeof(char));
+  concat[buffer->cursor_start] = '\0';
+  return concat;
+}
+
+char *GbConcatenateRight(gap_buffer *buffer) {
+  if (GbIsFlushed(buffer)) {
+    return GbConcatenate(buffer);
+  }
+  char *concat = malloc((GbTextSizeRight(buffer) + 1) * sizeof(char));
+  memcpy(concat, &buffer->data[buffer->cursor_end + 1],
+         GbTextSizeRight(buffer) * sizeof(char));
+  concat[GbTextSizeRight(buffer)] = '\0';
+  return concat;
 }
 #endif
