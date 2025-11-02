@@ -143,10 +143,12 @@ void GbOverwriteWithString(gap_buffer *buffer, char *input, long req_size) {
   buffer->data = malloc((buffer->end + 2) * sizeof(char));
   strcpy(buffer->data, input);
   buffer->data[buffer->end + 1] = '\0';
-  if (prevPos <= GbTextSize(buffer)) {
-    GbInsertCursor(buffer, prevPos, req_size);
-  } else {
-    GbInsertCursor(buffer, buffer->end + 1, req_size);
+  if (!GbIsFlushed(buffer)) {
+    if (prevPos <= GbTextSize(buffer)) {
+      GbInsertCursor(buffer, prevPos, req_size);
+    } else {
+      GbInsertCursor(buffer, buffer->end + 1, req_size);
+    }
   }
 }
 

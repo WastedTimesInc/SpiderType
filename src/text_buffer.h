@@ -1,5 +1,6 @@
 #pragma once
 #include "gap_buffer.h"
+#include <inttypes.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -28,6 +29,9 @@ bool TbInsertLineAtWithString(text_buffer *buffer, long insert_idx,
                               long req_size, char *input);
 // Remove the line at remove_idx
 bool TbRemoveLineAt(text_buffer *buffer, long remove_idx);
+
+// Merges merge_idx and merge_idx+1 into merge_idx
+bool TbMergeLines(text_buffer *buffer, long merge_idx);
 
 // Returns current_line which is an index
 long TbLinePosition(text_buffer *buffer);
@@ -172,6 +176,22 @@ bool TbRemoveLineAt(text_buffer *buffer, long remove_idx) {
   return false;
 }
 
+bool TbMergeLines(text_buffer *buffer, long merge_idx) {
+  if (merge_idx < buffer->num_lines - 1) {
+    char *lineOne = GbConcatenate(buffer->buffer_lines[merge_idx]);
+    char *lineTwo = GbConcatenate(buffer->buffer_lines[merge_idx + 1]);
+    lineOne = realloc(lineOne,
+                      (strlen(lineOne) + strlen(lineTwo) + 1) * sizeof(char));
+    strcpy(&lineOne[strlen(lineOne)], lineTwo);
+    GbOverwriteWithString(buffer->buffer_lines[merge_idx], lineOne,
+                          buffer->cursor_resize);
+    TbRemoveLineAt(buffer, merge_idx + 1);
+    buffer->concat_lines[merge_idx] =
+        GbConcatenate(buffer->buffer_lines[merge_idx]);
+  }
+  return false;
+}
+
 long TbLinePosition(text_buffer *buffer) { return buffer->current_line; }
 
 long TbCursorPosition(text_buffer *buffer) {
@@ -229,7 +249,11 @@ void TbMoveRight(text_buffer *buffer) {
 void TbBackspace(text_buffer *buffer) {
   if (GbCursorStartOfLine(buffer->buffer_lines[buffer->current_line]) &&
       !TbStartOfBuffer(buffer)) {
-    TbRemoveLineAt(buffer, buffer->current_line);
+    if (GbTextSize(buffer->buffer_lines[buffer->current_line]) == 0) {
+      TbRemoveLineAt(buffer, buffer->current_line);
+    } else {
+      TbMergeLines(buffer, buffer->current_line - 1);
+    }
   } else {
     GbBackspace(buffer->buffer_lines[buffer->current_line]);
     free(buffer->concat_lines[buffer->current_line]);
