@@ -83,6 +83,7 @@ int main(int argc, char *argv[]) {
   float charWidth =
       MeasureTextEx(monoFont, "0", params.text_size, params.char_spacing).x;
   text_buffer *mainBuffer = TbInitBuffer(1, 10);
+  Vector2 camOffset = {0.0, 0.0};
   while (!WindowShouldClose()) {
     int pressed = GetCharPressed();
     switch (GetKeyPressed()) {
@@ -114,16 +115,28 @@ int main(int argc, char *argv[]) {
       break;
     }
 
+    if ((TbCursorPosition(mainBuffer)) * (charWidth + params.char_spacing) >
+        GetRenderWidth() - 20) {
+      camOffset.x = ((TbCursorPosition(mainBuffer) + 1) *
+                     (charWidth + params.char_spacing)) -
+                    GetRenderWidth() + 20;
+    } else {
+      camOffset.x = 0.0;
+    }
     BeginDrawing();
     DrawRectangle(0, 0, GetRenderWidth(), GetRenderHeight(),
                   params.editor_bg_color);
+
     for (int i = 0; i < mainBuffer->num_lines; i++) {
       DrawTextEx(
           monoFont, mainBuffer->concat_lines[i],
-          (Vector2){20.0,
+          (Vector2){20.0 - camOffset.x,
                     10.0 + ((params.text_size + params.line_spacing) * i)},
           params.text_size, params.char_spacing, params.text_color);
+    }
 
+    DrawRectangle(0, 0, 18, GetRenderHeight(), params.editor_bg_color);
+    for (int i = 0; i < mainBuffer->num_lines; i++) {
       char *lineNum = malloc(20 * sizeof(char));
       if (TbLinePosition(mainBuffer) == i) {
         sprintf(lineNum, "%ld", TbLinePosition(mainBuffer) + 1);
@@ -138,8 +151,10 @@ int main(int argc, char *argv[]) {
       free(lineNum);
 
       Vector2 cursorPos;
-      cursorPos.x = 20 + (TbCursorPosition(mainBuffer) *
-                          (charWidth + params.char_spacing));
+      cursorPos.x =
+          20 +
+          (TbCursorPosition(mainBuffer) * (charWidth + params.char_spacing)) -
+          camOffset.x;
       cursorPos.y = 10 + (TbLinePosition(mainBuffer) *
                           (params.text_size + params.line_spacing));
       DrawTextEx(monoFont, "_", cursorPos, params.text_size,
@@ -355,5 +370,7 @@ int main(int argc, char *argv[]) {
      GbDestroy(&testBuff[i]);
    }
    free(testBuff);*/
+  CloseWindow();
+  UnloadFont(monoFont);
   return EXIT_SUCCESS;
 }

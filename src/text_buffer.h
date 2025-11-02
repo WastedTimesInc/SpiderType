@@ -229,9 +229,7 @@ void TbMoveLeft(text_buffer *buffer) {
 
 void TbMoveRight(text_buffer *buffer) {
   if (GbCursorEndOfLine(buffer->buffer_lines[buffer->current_line])) {
-    if (buffer->current_line == buffer->num_lines - 1) {
-      TbInsertLineAt(buffer, buffer->current_line, buffer->cursor_resize);
-    } else {
+    if (buffer->current_line != buffer->num_lines - 1) {
       GbFlushBuffer(buffer->buffer_lines[buffer->current_line]);
       buffer->current_line++;
       GbInsertCursor(buffer->buffer_lines[buffer->current_line], 0,
