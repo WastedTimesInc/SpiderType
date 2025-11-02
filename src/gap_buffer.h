@@ -47,7 +47,7 @@ gap_buffer *GbInitFlushBufferFromString(char *input);
 // Destroy the buffer passed
 void GbDestroy(gap_buffer *buffer);
 
-void GbOverwriteWithString(gap_buffer *buffer, char *input);
+void GbOverwriteWithString(gap_buffer *buffer, char *input, long req_size);
 
 // Checks if a buffer is flushed
 bool GbIsFlushed(gap_buffer *buffer);
@@ -133,9 +133,21 @@ gap_buffer *GbInitFlushBufferFromString(char *input) {
 // Destroys things
 void GbDestroy(gap_buffer *buffer) { free(buffer->data); }
 
-void GbOverwriteWithString(gap_buffer *buffer, char *input) {
-  free(buffer);
-  buffer = GbInitFlushBufferFromString(input);
+void GbOverwriteWithString(gap_buffer *buffer, char *input, long req_size) {
+  long prevPos = GbCursorSize(buffer);
+  if (!GbIsFlushed(buffer)) {
+    GbFlushBuffer(buffer);
+  }
+  free(buffer->data);
+  buffer->end = strlen(input) - 1;
+  buffer->data = malloc((buffer->end + 2) * sizeof(char));
+  strcpy(buffer->data, input);
+  buffer->data[buffer->end + 1] = '\0';
+  if (prevPos <= GbTextSize(buffer)) {
+    GbInsertCursor(buffer, prevPos, req_size);
+  } else {
+    GbInsertCursor(buffer, buffer->end + 1, req_size);
+  }
 }
 
 // Checks if a buffer is in its flushed state
@@ -274,6 +286,8 @@ void GbPrintBufferDebug(gap_buffer *buffer) {
     printf((char *)"False\n");
   }
 
+  printf((char *)"End Pos: ");
+  printf("%ld\n", buffer->end);
   if (!GbIsFlushed(buffer)) {
     for (int i = 0; i < buffer->cursor_start; i++) {
       char printChar = buffer->data[i];

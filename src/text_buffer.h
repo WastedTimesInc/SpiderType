@@ -1,6 +1,7 @@
 #pragma once
 #include "gap_buffer.h"
 #include <stdbool.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -291,11 +292,16 @@ void TbEnter(text_buffer *buffer) {
         GbConcatenateLeft(buffer->buffer_lines[buffer->current_line]);
     char *rightText =
         GbConcatenateRight(buffer->buffer_lines[buffer->current_line]);
-    TbRemoveLineAt(buffer, buffer->current_line);
-    TbInsertLineAtWithString(buffer, buffer->current_line,
-                             buffer->cursor_resize, leftText);
+    printf("%s\n", leftText);
+    printf("%s\n", rightText);
+    GbOverwriteWithString(buffer->buffer_lines[buffer->current_line], leftText,
+                          buffer->cursor_resize);
+    buffer->concat_lines[buffer->current_line] =
+        GbConcatenate(buffer->buffer_lines[buffer->current_line]);
     TbInsertLineAtWithString(buffer, buffer->current_line,
                              buffer->cursor_resize, rightText);
+    GbInsertCursor(buffer->buffer_lines[buffer->current_line], 0,
+                   buffer->cursor_resize);
   }
 }
 
