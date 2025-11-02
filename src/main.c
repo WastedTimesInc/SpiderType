@@ -5,6 +5,12 @@
 #include <stdlib.h>
 #include <string.h>
 
+typedef struct editor_params_t {
+  float text_size;
+  float char_spacing;
+  float line_spacing;
+} editor_params;
+
 char *LoadStringFromFile(FILE *f, char *path) {
   f = fopen(path, "r");
   fseek(f, 0, SEEK_END);
@@ -52,13 +58,22 @@ int clamp(int bot, int top, int val) {
 }
 
 int main(int argc, char *argv[]) {
-  SetConfigFlags(FLAG_WINDOW_RESIZABLE);
+
+  editor_params params;
+  params.text_size = 20;
+  params.char_spacing = 2;
+  params.line_spacing = 2;
+
+  SetConfigFlags(FLAG_WINDOW_RESIZABLE | FLAG_MSAA_4X_HINT);
   InitWindow(720, 480, (char *)"SpiderType");
   while (!IsWindowReady()) {
   };
   SetWindowMaxSize(3480, 2160);
   SetWindowMinSize(200, 100);
   SetTargetFPS(60);
+  Font monoFont = LoadFontEx("font.ttf", params.text_size, 0, 250);
+  float charWidth =
+      MeasureTextEx(monoFont, "0", params.text_size, params.char_spacing).x;
   text_buffer *mainBuffer = TbInitBuffer(1, 10);
   while (!WindowShouldClose()) {
     int pressed = GetCharPressed();
@@ -94,16 +109,32 @@ int main(int argc, char *argv[]) {
     BeginDrawing();
     DrawRectangle(0, 0, GetRenderWidth(), GetRenderHeight(), WHITE);
     for (int i = 0; i < mainBuffer->num_lines; i++) {
-      DrawText(mainBuffer->concat_lines[i], 10, 10 + (22 * i), 20, BLACK);
+      DrawTextEx(
+          monoFont, mainBuffer->concat_lines[i],
+          (Vector2){20.0,
+                    10.0 + ((params.text_size + params.line_spacing) * i)},
+          params.text_size, params.char_spacing, BLACK);
 
       char *lineNum = malloc(20 * sizeof(char));
       if (TbLinePosition(mainBuffer) == i) {
         sprintf(lineNum, "%ld", TbLinePosition(mainBuffer) + 1);
       } else {
-        long delta = abs(i - TbLinePosition(mainBuffer));
+        long delta = abs(i - (int)TbLinePosition(mainBuffer));
         sprintf(lineNum, "%ld", delta);
       }
-      DrawText(lineNum, 3, 10 + 6 + (22 * i), 10, BLACK);
+      DrawTextEx(
+          monoFont, lineNum,
+          (Vector2){3.0, 10.0 + ((params.text_size + params.line_spacing) * i)},
+          params.text_size, params.char_spacing, BLACK);
+      free(lineNum);
+
+      Vector2 cursorPos;
+      cursorPos.x = 20 + (TbCursorPosition(mainBuffer) *
+                          (charWidth + params.char_spacing));
+      cursorPos.y = 10 + (TbLinePosition(mainBuffer) *
+                          (params.text_size + params.line_spacing));
+      DrawTextEx(monoFont, "_", cursorPos, params.text_size,
+                 params.char_spacing, BLACK);
     }
     EndDrawing();
   }
