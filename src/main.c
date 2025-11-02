@@ -135,6 +135,16 @@ int main(int argc, char *argv[]) {
                           (params.text_size + params.line_spacing));
       DrawTextEx(monoFont, "_", cursorPos, params.text_size,
                  params.char_spacing, BLACK);
+
+      Vector2 fpsPos;
+      fpsPos.x = GetRenderWidth() - ((charWidth + params.char_spacing) * 8);
+      fpsPos.y = GetRenderHeight() - (params.text_size + params.line_spacing);
+      int fps = GetFPS();
+      char *fpsChar = malloc(10 * sizeof(char));
+      sprintf(fpsChar, (char *)"FPS: ");
+      sprintf(&fpsChar[5], "%d", fps);
+      DrawTextEx(monoFont, fpsChar, fpsPos, params.text_size,
+                 params.char_spacing, BLACK);
     }
     EndDrawing();
   }

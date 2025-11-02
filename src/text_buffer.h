@@ -316,8 +316,6 @@ void TbEnter(text_buffer *buffer) {
         GbConcatenateLeft(buffer->buffer_lines[buffer->current_line]);
     char *rightText =
         GbConcatenateRight(buffer->buffer_lines[buffer->current_line]);
-    printf("%s\n", leftText);
-    printf("%s\n", rightText);
     GbOverwriteWithString(buffer->buffer_lines[buffer->current_line], leftText,
                           buffer->cursor_resize);
     buffer->concat_lines[buffer->current_line] =
@@ -340,7 +338,6 @@ bool TbInsertChar(text_buffer *buffer, char insert) {
   if (success) {
     buffer->concat_lines[buffer->current_line] =
         GbConcatenate(buffer->buffer_lines[buffer->current_line]);
-    GbPrintBufferDebug(buffer->buffer_lines[buffer->current_line]);
   }
   return success;
 }
