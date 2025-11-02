@@ -9,6 +9,10 @@ typedef struct editor_params_t {
   float text_size;
   float char_spacing;
   float line_spacing;
+  Color text_color;
+  Color num_color;
+  Color cursor_color;
+  Color editor_bg_color;
 } editor_params;
 
 char *LoadStringFromFile(FILE *f, char *path) {
@@ -60,9 +64,13 @@ int clamp(int bot, int top, int val) {
 int main(int argc, char *argv[]) {
 
   editor_params params;
-  params.text_size = 20;
+  params.text_size = 15;
   params.char_spacing = 2;
   params.line_spacing = 2;
+  params.text_color = WHITE;
+  params.num_color = GRAY;
+  params.cursor_color = RED;
+  params.editor_bg_color = BLACK;
 
   SetConfigFlags(FLAG_WINDOW_RESIZABLE | FLAG_MSAA_4X_HINT);
   InitWindow(720, 480, (char *)"SpiderType");
@@ -107,13 +115,14 @@ int main(int argc, char *argv[]) {
     }
 
     BeginDrawing();
-    DrawRectangle(0, 0, GetRenderWidth(), GetRenderHeight(), WHITE);
+    DrawRectangle(0, 0, GetRenderWidth(), GetRenderHeight(),
+                  params.editor_bg_color);
     for (int i = 0; i < mainBuffer->num_lines; i++) {
       DrawTextEx(
           monoFont, mainBuffer->concat_lines[i],
           (Vector2){20.0,
                     10.0 + ((params.text_size + params.line_spacing) * i)},
-          params.text_size, params.char_spacing, BLACK);
+          params.text_size, params.char_spacing, params.text_color);
 
       char *lineNum = malloc(20 * sizeof(char));
       if (TbLinePosition(mainBuffer) == i) {
@@ -125,7 +134,7 @@ int main(int argc, char *argv[]) {
       DrawTextEx(
           monoFont, lineNum,
           (Vector2){3.0, 10.0 + ((params.text_size + params.line_spacing) * i)},
-          params.text_size, params.char_spacing, BLACK);
+          params.text_size, params.char_spacing, params.num_color);
       free(lineNum);
 
       Vector2 cursorPos;
@@ -134,7 +143,7 @@ int main(int argc, char *argv[]) {
       cursorPos.y = 10 + (TbLinePosition(mainBuffer) *
                           (params.text_size + params.line_spacing));
       DrawTextEx(monoFont, "_", cursorPos, params.text_size,
-                 params.char_spacing, BLACK);
+                 params.char_spacing, params.cursor_color);
 
       Vector2 fpsPos;
       fpsPos.x = GetRenderWidth() - ((charWidth + params.char_spacing) * 8);
