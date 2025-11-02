@@ -15,6 +15,8 @@ typedef struct editor_params_t {
   Color editor_bg_color;
 } editor_params;
 
+typedef enum editor_mode_t { NORMAL = 0, INSERT = 1 } editor_mode;
+
 char *LoadStringFromFile(FILE *f, char *path) {
   f = fopen(path, "r");
   fseek(f, 0, SEEK_END);
@@ -71,7 +73,7 @@ int main(int argc, char *argv[]) {
   params.num_color = GRAY;
   params.cursor_color = RED;
   params.editor_bg_color = BLACK;
-
+  editor_mode mainMode = NORMAL;
   SetConfigFlags(FLAG_WINDOW_RESIZABLE | FLAG_MSAA_4X_HINT);
   InitWindow(720, 480, (char *)"SpiderType");
   while (!IsWindowReady()) {
@@ -79,40 +81,79 @@ int main(int argc, char *argv[]) {
   SetWindowMaxSize(3480, 2160);
   SetWindowMinSize(200, 100);
   SetTargetFPS(60);
+  SetExitKey(KEY_INSERT);
   Font monoFont = LoadFontEx("font.ttf", params.text_size, 0, 250);
   float charWidth =
       MeasureTextEx(monoFont, "0", params.text_size, params.char_spacing).x;
   text_buffer *mainBuffer = TbInitBuffer(1, 10);
   Vector2 camOffset = {0.0, 0.0};
-  while (!WindowShouldClose()) {
+  bool CloseCall = false;
+  while (!WindowShouldClose() && !CloseCall) {
     int pressed = GetCharPressed();
-    switch (GetKeyPressed()) {
-    case KEY_BACKSPACE:
-      TbBackspace(mainBuffer);
-      break;
-    case KEY_DELETE:
-      TbDelete(mainBuffer);
-      break;
-    case KEY_UP:
-      TbMoveUp(mainBuffer);
-      break;
-    case KEY_DOWN:
-      TbMoveDown(mainBuffer);
-      break;
-    case KEY_LEFT:
-      TbMoveLeft(mainBuffer);
-      break;
-    case KEY_RIGHT:
-      TbMoveRight(mainBuffer);
-      break;
-    case KEY_ENTER:
-      TbEnter(mainBuffer);
-      break;
-    default:
-      if (pressed != 0) {
-        bool succes = TbInsertChar(mainBuffer, (char)pressed);
+    if (mainMode == NORMAL) {
+      switch (GetKeyPressed()) {
+      case KEY_BACKSPACE:
+        TbMoveLeft(mainBuffer);
+        break;
+      case KEY_DELETE:
+        TbDelete(mainBuffer);
+        break;
+      case KEY_K:
+        TbMoveUp(mainBuffer);
+        break;
+      case KEY_J:
+        TbMoveDown(mainBuffer);
+        break;
+      case KEY_H:
+        TbMoveLeft(mainBuffer);
+        break;
+      case KEY_L:
+        TbMoveRight(mainBuffer);
+        break;
+      case KEY_ENTER:
+        TbMoveDown(mainBuffer);
+        break;
+      case KEY_I:
+        mainMode = INSERT;
+        break;
+      case KEY_Q:
+        CloseCall = true;
+        break;
+      default:
+        break;
       }
-      break;
+    } else if (mainMode == INSERT) {
+      switch (GetKeyPressed()) {
+      case KEY_BACKSPACE:
+        TbBackspace(mainBuffer);
+        break;
+      case KEY_DELETE:
+        TbDelete(mainBuffer);
+        break;
+      case KEY_UP:
+        TbMoveUp(mainBuffer);
+        break;
+      case KEY_DOWN:
+        TbMoveDown(mainBuffer);
+        break;
+      case KEY_LEFT:
+        TbMoveLeft(mainBuffer);
+        break;
+      case KEY_RIGHT:
+        TbMoveRight(mainBuffer);
+        break;
+      case KEY_ENTER:
+        TbEnter(mainBuffer);
+        break;
+      case KEY_ESCAPE:
+        mainMode = NORMAL;
+        break;
+      default:
+        if (pressed != 0) {
+          bool succes = TbInsertChar(mainBuffer, (char)pressed);
+        }
+        break;
+      }
     }
 
     if ((TbCursorPosition(mainBuffer)) * (charWidth + params.char_spacing) >
@@ -159,16 +200,23 @@ int main(int argc, char *argv[]) {
                           (params.text_size + params.line_spacing));
       DrawTextEx(monoFont, "_", cursorPos, params.text_size,
                  params.char_spacing, params.cursor_color);
+    }
+    Vector2 fpsPos;
+    fpsPos.x = GetRenderWidth() - ((charWidth + params.char_spacing) * 8);
+    fpsPos.y = GetRenderHeight() - (params.text_size + params.line_spacing);
+    int fps = GetFPS();
+    char *fpsChar = malloc(10 * sizeof(char));
+    sprintf(fpsChar, (char *)"FPS: ");
+    sprintf(&fpsChar[5], "%d", fps);
+    DrawTextEx(monoFont, fpsChar, fpsPos, params.text_size, params.char_spacing,
+               params.num_color);
 
-      Vector2 fpsPos;
-      fpsPos.x = GetRenderWidth() - ((charWidth + params.char_spacing) * 8);
-      fpsPos.y = GetRenderHeight() - (params.text_size + params.line_spacing);
-      int fps = GetFPS();
-      char *fpsChar = malloc(10 * sizeof(char));
-      sprintf(fpsChar, (char *)"FPS: ");
-      sprintf(&fpsChar[5], "%d", fps);
-      DrawTextEx(monoFont, fpsChar, fpsPos, params.text_size,
-                 params.char_spacing, BLACK);
+    if (mainMode == NORMAL) {
+      DrawTextEx(monoFont, "NORMAL", (Vector2){3, fpsPos.y}, params.text_size,
+                 params.char_spacing, params.num_color);
+    } else if (mainMode == INSERT) {
+      DrawTextEx(monoFont, "INSERT", (Vector2){3, fpsPos.y}, params.text_size,
+                 params.char_spacing, params.num_color);
     }
     EndDrawing();
   }
