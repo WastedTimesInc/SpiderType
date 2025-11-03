@@ -75,6 +75,9 @@ int main(int argc, char *argv[]) {
   float charWidth =
       MeasureTextEx(monoFont, "0", params.text_size, params.char_spacing).x;
   text_buffer *mainBuffer = TbInitBuffer(1, 10);
+  Vector2 cursorPos;
+  Vector2 fpsPos;
+  int ln_pad = 0;
   while (!WindowShouldClose()) {
     int pressed = GetCharPressed();
     switch (GetKeyPressed()) {
@@ -108,13 +111,23 @@ int main(int argc, char *argv[]) {
 
     BeginDrawing();
     DrawRectangle(0, 0, GetRenderWidth(), GetRenderHeight(), WHITE);
+    if(20+cursorPos.x-cam_pos.x>GetRenderWidth()){
+      cam_pos.x+=12;
+    }else if(cursorPos.x-cam_pos.x<20){
+      cam_pos.x-=12;
+    }
+    if(10+cursorPos.y-cam_pos.y>GetRenderHeight()){
+      cam_pos.y+=10;
+    }else if(cursorPos.y-cam_pos.y<0){
+      cam_pos.y-=10;
+    }
     for (int i = 0; i < mainBuffer->num_lines; i++) {
       DrawTextEx(
           monoFont, mainBuffer->concat_lines[i],
-          (Vector2){20.0,
-                    10.0 + ((params.text_size + params.line_spacing) * i)},
+          (Vector2){20.0 - cam_pos.x + ln_pad,
+                    10.0 + ((params.text_size + params.line_spacing) * i) - cam_pos.y},
           params.text_size, params.char_spacing, BLACK);
-
+      DrawRectangle(0,10.0 + ((params.text_size + params.line_spacing) * i) - cam_pos.y,20+ln_pad,20,WHITE);
       char *lineNum = malloc(20 * sizeof(char));
       if (TbLinePosition(mainBuffer) == i) {
         sprintf(lineNum, "%ld", TbLinePosition(mainBuffer) + 1);
@@ -122,21 +135,22 @@ int main(int argc, char *argv[]) {
         long delta = abs(i - (int)TbLinePosition(mainBuffer));
         sprintf(lineNum, "%ld", delta);
       }
+      if(strlen(lineNum)*(params.text_size/2+params.char_spacing)>ln_pad){
+        ln_pad =strlen(lineNum)*(params.text_size/2+params.char_spacing);
+      }
       DrawTextEx(
           monoFont, lineNum,
-          (Vector2){3.0, 10.0 + ((params.text_size + params.line_spacing) * i)},
+          (Vector2){3.0, 10.0 + ((params.text_size + params.line_spacing) * i - cam_pos.y)},
           params.text_size, params.char_spacing, BLACK);
       free(lineNum);
 
-      Vector2 cursorPos;
       cursorPos.x = 20 + (TbCursorPosition(mainBuffer) *
                           (charWidth + params.char_spacing));
       cursorPos.y = 10 + (TbLinePosition(mainBuffer) *
                           (params.text_size + params.line_spacing));
-      DrawTextEx(monoFont, "_", cursorPos, params.text_size,
+      DrawTextEx(monoFont, "_", (Vector2){cursorPos.x-cam_pos.x,cursorPos.y-cam_pos.y}, params.text_size,
                  params.char_spacing, BLACK);
 
-      Vector2 fpsPos;
       fpsPos.x = GetRenderWidth() - ((charWidth + params.char_spacing) * 8);
       fpsPos.y = GetRenderHeight() - (params.text_size + params.line_spacing);
       int fps = GetFPS();
@@ -145,6 +159,7 @@ int main(int argc, char *argv[]) {
       sprintf(&fpsChar[5], "%d", fps);
       DrawTextEx(monoFont, fpsChar, fpsPos, params.text_size,
                  params.char_spacing, BLACK);
+      free(fpsChar);
     }
     EndDrawing();
   }
