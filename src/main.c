@@ -7,8 +7,10 @@
 
 typedef struct editor_params_t {
   float text_size;
+  float text_width;
   float char_spacing;
   float line_spacing;
+  float line_num_padding;
   Color text_color;
   Color num_color;
   Color cursor_color;
@@ -64,16 +66,7 @@ int clamp(int bot, int top, int val) {
 }
 
 int main(int argc, char *argv[]) {
-  Vector2 cam_pos ={0,0};
-  editor_params params;
-  params.text_size = 15;
-  params.char_spacing = 2;
-  params.line_spacing = 2;
-  params.text_color = WHITE;
-  params.num_color = GRAY;
-  params.cursor_color = RED;
-  params.editor_bg_color = BLACK;
-  editor_mode mainMode = NORMAL;
+  // Raylib config flags
   SetConfigFlags(FLAG_WINDOW_RESIZABLE | FLAG_MSAA_4X_HINT);
   InitWindow(720, 480, (char *)"SpiderType");
   while (!IsWindowReady()) {
@@ -82,14 +75,29 @@ int main(int argc, char *argv[]) {
   SetWindowMinSize(200, 100);
   SetTargetFPS(60);
   SetExitKey(KEY_INSERT);
+
+  // Editor variables and parameters setup
+  Vector2 cam_pos = {0, 0};
+  editor_params params;
+  params.text_size = 15;
+  params.char_spacing = 2;
+  params.line_spacing = 2;
+  params.line_num_padding = 0;
+  params.text_color = WHITE;
+  params.num_color = GRAY;
+  params.cursor_color = RED;
+  params.editor_bg_color = BLACK;
+  editor_mode mainMode = NORMAL;
   Font monoFont = LoadFontEx("font.ttf", params.text_size, 0, 250);
-  float charWidth =
+  params.text_width =
       MeasureTextEx(monoFont, "0", params.text_size, params.char_spacing).x;
   text_buffer *mainBuffer = TbInitBuffer(1, 10);
   Vector2 cursorPos;
   Vector2 fpsPos;
   int ln_pad = 0;
-  while (!WindowShouldClose()) {
+  gap_buffer *commandBuffer = GbInitBuffer(10);
+  bool CloseCall = false;
+  while (!WindowShouldClose() && !CloseCall) {
     int pressed = GetCharPressed();
     if (mainMode == NORMAL) {
       switch (GetKeyPressed()) {
@@ -182,33 +190,28 @@ int main(int argc, char *argv[]) {
       free(cmdTxt);
     }
 
-    if ((TbCursorPosition(mainBuffer)) * (charWidth + params.char_spacing) >
-        GetRenderWidth() - 20) {
-      camOffset.x = ((TbCursorPosition(mainBuffer) + 1) *
-                     (charWidth + params.char_spacing)) -
-                    GetRenderWidth() + 20;
-    } else {
-      camOffset.x = 0.0;
-    }
     BeginDrawing();
-    DrawRectangle(0, 0, GetRenderWidth(), GetRenderHeight(), WHITE);
-    if(20+cursorPos.x-cam_pos.x>GetRenderWidth()){
-      cam_pos.x+=12;
-    }else if(cursorPos.x-cam_pos.x<20){
-      cam_pos.x-=12;
+    DrawRectangle(0, 0, GetRenderWidth(), GetRenderHeight(),
+                  params.editor_bg_color);
+    if (20 + cursorPos.x - cam_pos.x > GetRenderWidth()) {
+      cam_pos.x += 12;
+    } else if (cursorPos.x - cam_pos.x < 20) {
+      cam_pos.x -= 12;
     }
-    if(10+cursorPos.y-cam_pos.y>GetRenderHeight()){
-      cam_pos.y+=10;
-    }else if(cursorPos.y-cam_pos.y<0){
-      cam_pos.y-=10;
+    if (10 + cursorPos.y - cam_pos.y > GetRenderHeight()) {
+      cam_pos.y += 10;
+    } else if (cursorPos.y - cam_pos.y < 0) {
+      cam_pos.y -= 10;
     }
     for (int i = 0; i < mainBuffer->num_lines; i++) {
-      DrawTextEx(
-          monoFont, mainBuffer->concat_lines[i],
-          (Vector2){20.0 - cam_pos.x + ln_pad,
-                    10.0 + ((params.text_size + params.line_spacing) * i) - cam_pos.y},
-          params.text_size, params.char_spacing, BLACK);
-      DrawRectangle(0,10.0 + ((params.text_size + params.line_spacing) * i) - cam_pos.y,20+ln_pad,20,WHITE);
+      Vector2 textPos = {20 - cam_pos.x + ln_pad, 10};
+      DrawTextEx(monoFont, mainBuffer->concat_lines[i],
+                 (Vector2){20.0 - cam_pos.x,
+                           10.0 +
+                               ((params.text_size + params.line_spacing) * i) -
+                               cam_pos.y},
+                 params.text_size, params.char_spacing, params.text_color);
+
       char *lineNum = malloc(20 * sizeof(char));
       if (TbLinePosition(mainBuffer) == i) {
         sprintf(lineNum, "%ld", TbLinePosition(mainBuffer) + 1);
@@ -216,59 +219,38 @@ int main(int argc, char *argv[]) {
         long delta = abs(i - (int)TbLinePosition(mainBuffer));
         sprintf(lineNum, "%ld", delta);
       }
-      if(strlen(lineNum)*(params.text_size/2+params.char_spacing)>ln_pad){
-        ln_pad =strlen(lineNum)*(params.text_size/2+params.char_spacing);
+      if (strlen(lineNum) * (params.text_size / 2 + params.char_spacing) >
+          ln_pad) {
+        ln_pad = strlen(lineNum) * (params.text_size / 2 + params.char_spacing);
       }
       DrawTextEx(
           monoFont, lineNum,
-          (Vector2){3.0, 10.0 + ((params.text_size + params.line_spacing) * i - cam_pos.y)},
-          params.text_size, params.char_spacing, BLACK);
+          (Vector2){3.0, 10.0 + ((params.text_size + params.line_spacing) * i -
+                                 cam_pos.y)},
+          params.text_size, params.char_spacing, params.num_color);
       free(lineNum);
-
-      cursorPos.x = 20 + (TbCursorPosition(mainBuffer) *
-                          (charWidth + params.char_spacing));
-      cursorPos.y = 10 + (TbLinePosition(mainBuffer) *
-                          (params.text_size + params.line_spacing));
-      DrawTextEx(monoFont, "_", (Vector2){cursorPos.x-cam_pos.x,cursorPos.y-cam_pos.y}, params.text_size,
-                 params.char_spacing, BLACK);
-
-      fpsPos.x = GetRenderWidth() - ((charWidth + params.char_spacing) * 8);
-      fpsPos.y = GetRenderHeight() - (params.text_size + params.line_spacing);
-      int fps = GetFPS();
-      char *fpsChar = malloc(10 * sizeof(char));
-      sprintf(fpsChar, (char *)"FPS: ");
-      sprintf(&fpsChar[5], "%d", fps);
-      DrawTextEx(monoFont, fpsChar, fpsPos, params.text_size,
-                 params.char_spacing, BLACK);
-      free(fpsChar);
     }
-    Vector2 fpsPos;
-    fpsPos.x = GetRenderWidth() - ((charWidth + params.char_spacing) * 8);
-    fpsPos.y = GetRenderHeight() - (params.text_size + params.line_spacing);
-    int fps = GetFPS();
-    char *fpsChar = malloc(10 * sizeof(char));
-    sprintf(fpsChar, (char *)"FPS: ");
-    sprintf(&fpsChar[5], "%d", fps);
-    DrawTextEx(monoFont, fpsChar, fpsPos, params.text_size, params.char_spacing,
-               params.num_color);
-
-    if (mainMode == NORMAL) {
-      DrawTextEx(monoFont, "NORMAL", (Vector2){3, fpsPos.y}, params.text_size,
-                 params.char_spacing, params.num_color);
-    } else if (mainMode == INSERT) {
-      DrawTextEx(monoFont, "INSERT", (Vector2){3, fpsPos.y}, params.text_size,
-                 params.char_spacing, params.num_color);
-    }
+    cursorPos.x = 20 + (TbCursorPosition(mainBuffer) *
+                        (params.text_width + params.char_spacing));
+    cursorPos.y = 10 + (TbLinePosition(mainBuffer) *
+                        (params.text_size + params.line_spacing));
+    DrawTextEx(monoFont, "_",
+               (Vector2){cursorPos.x - cam_pos.x, cursorPos.y - cam_pos.y},
+               params.text_size, params.char_spacing, params.cursor_color);
 
     char *commandBufTxt = malloc(64 * sizeof(char));
     switch (mainMode) {
     case NORMAL:
-      DrawTextEx(monoFont, "NORMAL", (Vector2){3, fpsPos.y}, params.text_size,
-                 params.char_spacing, params.num_color);
+      DrawTextEx(monoFont, "NORMAL",
+                 (Vector2){3, GetRenderHeight() -
+                                  (params.text_size + params.line_spacing)},
+                 params.text_size, params.char_spacing, params.num_color);
       break;
     case INSERT:
-      DrawTextEx(monoFont, "INSERT", (Vector2){3, fpsPos.y}, params.text_size,
-                 params.char_spacing, params.num_color);
+      DrawTextEx(monoFont, "INSERT",
+                 (Vector2){3, GetRenderHeight() -
+                                  (params.text_size + params.line_spacing)},
+                 params.text_size, params.char_spacing, params.num_color);
       break;
     case COMMAND:
 
@@ -276,7 +258,9 @@ int main(int argc, char *argv[]) {
       char *concatCmd = GbConcatenate(commandBuffer);
       sprintf(&commandBufTxt[8], "%s", concatCmd);
       free(concatCmd);
-      DrawTextEx(monoFont, commandBufTxt, (Vector2){3, fpsPos.y},
+      DrawTextEx(monoFont, commandBufTxt,
+                 (Vector2){3, GetRenderHeight() -
+                                  (params.text_size + params.line_spacing)},
                  params.text_size, params.char_spacing, params.num_color);
 
       break;
