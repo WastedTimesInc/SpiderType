@@ -58,7 +58,7 @@ int clamp(int bot, int top, int val) {
 }
 
 int main(int argc, char *argv[]) {
-
+  Vector2 cam_pos ={0,0};
   editor_params params;
   params.text_size = 20;
   params.char_spacing = 2;
