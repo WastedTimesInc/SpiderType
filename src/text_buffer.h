@@ -164,7 +164,7 @@ bool TbRemoveLineAt(text_buffer *buffer, long remove_idx) {
            (buffer->num_lines - remove_idx - 1) * sizeof(char *));
     memcpy(&buffer->is_modified[remove_idx],
            &buffer->is_modified[remove_idx + 1],
-           (buffer->num_lines - 1) * sizeof(bool));
+           (buffer->num_lines - remove_idx - 1) * sizeof(bool));
     buffer->buffer_lines = realloc(
         buffer->buffer_lines, (buffer->num_lines - 1) * sizeof(gap_buffer *));
     buffer->concat_lines =
