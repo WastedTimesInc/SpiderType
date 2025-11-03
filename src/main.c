@@ -11,6 +11,7 @@ typedef struct editor_params_t {
   float char_spacing;
   float line_spacing;
   float line_num_padding;
+  float top_offset;
   Color text_color;
   Color num_color;
   Color cursor_color;
@@ -83,6 +84,7 @@ int main(int argc, char *argv[]) {
   params.char_spacing = 2;
   params.line_spacing = 2;
   params.line_num_padding = 0;
+  params.top_offset = 5;
   params.text_color = WHITE;
   params.num_color = GRAY;
   params.cursor_color = RED;
@@ -194,22 +196,20 @@ int main(int argc, char *argv[]) {
     DrawRectangle(0, 0, GetRenderWidth(), GetRenderHeight(),
                   params.editor_bg_color);
     if (20 + cursorPos.x - cam_pos.x > GetRenderWidth()) {
-      cam_pos.x += 12;
+      cam_pos.x += params.text_width + params.char_spacing;
     } else if (cursorPos.x - cam_pos.x < 20) {
-      cam_pos.x -= 12;
+      cam_pos.x -= params.text_width + params.char_spacing;
     }
-    if (10 + cursorPos.y - cam_pos.y > GetRenderHeight()) {
-      cam_pos.y += 10;
+    if (params.top_offset + cursorPos.y - cam_pos.y > GetRenderHeight()) {
+      cam_pos.y += params.text_size + params.line_spacing;
     } else if (cursorPos.y - cam_pos.y < 0) {
-      cam_pos.y -= 10;
+      cam_pos.y -= params.text_size + params.line_spacing;
     }
     for (int i = 0; i < mainBuffer->num_lines; i++) {
-      Vector2 textPos = {20 - cam_pos.x + ln_pad, 10};
-      DrawTextEx(monoFont, mainBuffer->concat_lines[i],
-                 (Vector2){20.0 - cam_pos.x,
-                           10.0 +
-                               ((params.text_size + params.line_spacing) * i) -
-                               cam_pos.y},
+      Vector2 textPos = {20 - cam_pos.x,
+                         params.top_offset +
+                             ((params.text_size + params.char_spacing) * i)};
+      DrawTextEx(monoFont, mainBuffer->concat_lines[i], textPos,
                  params.text_size, params.char_spacing, params.text_color);
 
       char *lineNum = malloc(20 * sizeof(char));
@@ -225,15 +225,17 @@ int main(int argc, char *argv[]) {
       }
       DrawTextEx(
           monoFont, lineNum,
-          (Vector2){3.0, 10.0 + ((params.text_size + params.line_spacing) * i -
-                                 cam_pos.y)},
+          (Vector2){3.0, params.top_offset +
+                             ((params.text_size + params.line_spacing) * i -
+                              cam_pos.y)},
           params.text_size, params.char_spacing, params.num_color);
       free(lineNum);
     }
     cursorPos.x = 20 + (TbCursorPosition(mainBuffer) *
                         (params.text_width + params.char_spacing));
-    cursorPos.y = 10 + (TbLinePosition(mainBuffer) *
-                        (params.text_size + params.line_spacing));
+    cursorPos.y =
+        params.top_offset +
+        (TbLinePosition(mainBuffer) * (params.text_size + params.line_spacing));
     DrawTextEx(monoFont, "_",
                (Vector2){cursorPos.x - cam_pos.x, cursorPos.y - cam_pos.y},
                params.text_size, params.char_spacing, params.cursor_color);
