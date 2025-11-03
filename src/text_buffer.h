@@ -2,7 +2,6 @@
 #include "gap_buffer.h"
 #include <inttypes.h>
 #include <stdbool.h>
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -64,6 +63,8 @@ void TbEnter(text_buffer *buffer);
 
 // Safe char insert
 bool TbInsertChar(text_buffer *buffer, char insert);
+
+void TbDestroy(text_buffer *buffer);
 
 #ifndef TEXT_BUFFER
 #define TEXT_BUFFER
@@ -338,5 +339,13 @@ bool TbInsertChar(text_buffer *buffer, char insert) {
         GbConcatenate(buffer->buffer_lines[buffer->current_line]);
   }
   return success;
+}
+
+void TbDestroy(text_buffer *buffer) {
+  for (int i = 0; i < buffer->num_lines; i++) {
+    GbDestroy(buffer->buffer_lines[i]);
+    free(buffer->buffer_lines[i]);
+    free(buffer->concat_lines[i]);
+  }
 }
 #endif

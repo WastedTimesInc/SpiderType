@@ -44,6 +44,8 @@ gap_buffer *GbInitBuffer(long req_size);
 void GbInitFlushBufferFromStringByPointer(gap_buffer *buffer, char *input);
 gap_buffer *GbInitFlushBufferFromString(char *input);
 
+void GbResetBuffer(gap_buffer *buffer, long req_size);
+
 // Destroy the buffer passed
 void GbDestroy(gap_buffer *buffer);
 
@@ -130,6 +132,12 @@ gap_buffer *GbInitFlushBufferFromString(char *input) {
   GbInitFlushBufferFromStringByPointer(buffer, input);
   return buffer;
 }
+
+void GbResetBuffer(gap_buffer *buffer, long req_size) {
+  free(buffer->data);
+  GbInitBufferByPointer(buffer, req_size);
+}
+
 // Destroys things
 void GbDestroy(gap_buffer *buffer) { free(buffer->data); }
 

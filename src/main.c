@@ -15,7 +15,7 @@ typedef struct editor_params_t {
   Color editor_bg_color;
 } editor_params;
 
-typedef enum editor_mode_t { NORMAL = 0, INSERT = 1 } editor_mode;
+typedef enum editor_mode_t { NORMAL = 0, INSERT = 1, COMMAND = 2 } editor_mode;
 
 char *LoadStringFromFile(FILE *f, char *path) {
   f = fopen(path, "r");
@@ -88,6 +88,7 @@ int main(int argc, char *argv[]) {
   text_buffer *mainBuffer = TbInitBuffer(1, 10);
   Vector2 camOffset = {0.0, 0.0};
   bool CloseCall = false;
+  gap_buffer *commandBuffer = GbInitBuffer(10);
   while (!WindowShouldClose() && !CloseCall) {
     int pressed = GetCharPressed();
     if (mainMode == NORMAL) {
@@ -116,8 +117,9 @@ int main(int argc, char *argv[]) {
       case KEY_I:
         mainMode = INSERT;
         break;
-      case KEY_Q:
-        CloseCall = true;
+      case KEY_SEMICOLON:
+        mainMode = COMMAND;
+        GbResetBuffer(commandBuffer, 10);
         break;
       default:
         break;
@@ -154,6 +156,30 @@ int main(int argc, char *argv[]) {
         }
         break;
       }
+    } else if (mainMode == COMMAND) {
+      char *cmdTxt = GbConcatenate(commandBuffer);
+      switch (GetKeyPressed()) {
+      case KEY_ESCAPE:
+        mainMode = NORMAL;
+        break;
+      case KEY_ENTER:
+        if (cmdTxt[0] == 'q') {
+          CloseCall = true;
+        }
+        mainMode = NORMAL;
+        break;
+      default:
+        if (pressed != 0) {
+          if (GbInsertChar(commandBuffer, (char)pressed) == false) {
+
+            GbResizeCursor(commandBuffer, 10);
+            GbInsertChar(commandBuffer, (char)pressed);
+          }
+          GbPrintBufferDebug(commandBuffer);
+        }
+        break;
+      }
+      free(cmdTxt);
     }
 
     if ((TbCursorPosition(mainBuffer)) * (charWidth + params.char_spacing) >
@@ -218,6 +244,29 @@ int main(int argc, char *argv[]) {
       DrawTextEx(monoFont, "INSERT", (Vector2){3, fpsPos.y}, params.text_size,
                  params.char_spacing, params.num_color);
     }
+
+    char *commandBufTxt = malloc(64 * sizeof(char));
+    switch (mainMode) {
+    case NORMAL:
+      DrawTextEx(monoFont, "NORMAL", (Vector2){3, fpsPos.y}, params.text_size,
+                 params.char_spacing, params.num_color);
+      break;
+    case INSERT:
+      DrawTextEx(monoFont, "INSERT", (Vector2){3, fpsPos.y}, params.text_size,
+                 params.char_spacing, params.num_color);
+      break;
+    case COMMAND:
+
+      sprintf(commandBufTxt, "COMMAND:");
+      char *concatCmd = GbConcatenate(commandBuffer);
+      sprintf(&commandBufTxt[8], "%s", concatCmd);
+      free(concatCmd);
+      DrawTextEx(monoFont, commandBufTxt, (Vector2){3, fpsPos.y},
+                 params.text_size, params.char_spacing, params.num_color);
+
+      break;
+    }
+    free(commandBufTxt);
     EndDrawing();
   }
   /* int tot_line = 1;
@@ -420,5 +469,9 @@ int main(int argc, char *argv[]) {
    free(testBuff);*/
   CloseWindow();
   UnloadFont(monoFont);
+  GbDestroy(commandBuffer);
+  free(commandBuffer);
+  TbDestroy(mainBuffer);
+  free(mainBuffer);
   return EXIT_SUCCESS;
 }
