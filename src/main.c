@@ -12,6 +12,7 @@ typedef struct editor_params_t {
   float char_spacing;
   float line_spacing;
   float line_num_padding;
+  float line_num_margin;
   float top_offset;
   float left_offset;
   Color text_color;
@@ -92,6 +93,7 @@ int main(int argc, char *argv[]) {
   params.char_spacing = 2;
   params.line_spacing = 2;
   params.line_num_padding = 0;
+  params.line_num_margin = 6;
   params.top_offset = 5;
   params.left_offset = 5;
   params.text_color = WHITE;
@@ -108,121 +110,124 @@ int main(int argc, char *argv[]) {
   gap_buffer *commandBuffer = GbInitBuffer(10);
   bool CloseCall = false;
   while (!WindowShouldClose() && !CloseCall) {
+
     int pressed = GetCharPressed();
+
     if (mainMode == NORMAL) {
-      switch (GetKeyPressed()) {
-      case KEY_BACKSPACE:
-        TbMoveLeft(mainBuffer);
-        break;
-      case KEY_DELETE:
-        TbDelete(mainBuffer);
-        break;
-      case KEY_K:
-        TbMoveUp(mainBuffer);
-        break;
-      case KEY_J:
-        TbMoveDown(mainBuffer);
-        break;
-      case KEY_H:
-        TbMoveLeft(mainBuffer);
-        break;
-      case KEY_L:
-        TbMoveRight(mainBuffer);
-        break;
-      case KEY_ENTER:
-        TbMoveDown(mainBuffer);
-        break;
-      case KEY_I:
-        mainMode = INSERT;
-        break;
-      case KEY_SEMICOLON:
+      // vim-style ':' (shift+semicolon) enters COMMAND mode
+      if (pressed == ':') {
         mainMode = COMMAND;
         GbResetBuffer(commandBuffer, 10);
-        break;
-      default:
-        break;
       }
-    } else if (mainMode == INSERT) {
-      switch (GetKeyPressed()) {
-      case KEY_BACKSPACE:
-        TbBackspace(mainBuffer);
-        break;
-      case KEY_DELETE:
-        TbDelete(mainBuffer);
-        break;
-      case KEY_UP:
-        TbMoveUp(mainBuffer);
-        break;
-      case KEY_DOWN:
-        TbMoveDown(mainBuffer);
-        break;
-      case KEY_LEFT:
+
+      // Movement / edit keys with repeat
+      if (IsKeyPressed(KEY_BACKSPACE) || IsKeyPressedRepeat(KEY_BACKSPACE)) {
         TbMoveLeft(mainBuffer);
-        break;
-      case KEY_RIGHT:
+      } else if (IsKeyPressed(KEY_DELETE) || IsKeyPressedRepeat(KEY_DELETE)) {
+        TbDelete(mainBuffer);
+      } else if (IsKeyPressed(KEY_K) || IsKeyPressedRepeat(KEY_K)) {
+        TbMoveUp(mainBuffer);
+      } else if (IsKeyPressed(KEY_J) || IsKeyPressedRepeat(KEY_J)) {
+        TbMoveDown(mainBuffer);
+      } else if (IsKeyPressed(KEY_H) || IsKeyPressedRepeat(KEY_H)) {
+        TbMoveLeft(mainBuffer);
+      } else if (IsKeyPressed(KEY_L) || IsKeyPressedRepeat(KEY_L)) {
         TbMoveRight(mainBuffer);
-        break;
-      case KEY_ENTER:
-        TbEnter(mainBuffer);
-        break;
-      case KEY_ESCAPE:
-        mainMode = NORMAL;
-        break;
-      default:
-        if (pressed != 0) {
-          bool succes = TbInsertChar(mainBuffer, (char)pressed);
-        }
-        break;
+      } else if (IsKeyPressed(KEY_ENTER) || IsKeyPressedRepeat(KEY_ENTER)) {
+        TbMoveDown(mainBuffer);
       }
+
+      // Mode change: 'i' (no repeat)
+      if (IsKeyPressed(KEY_I)) {
+        mainMode = INSERT;
+      }
+
+    } else if (mainMode == INSERT) {
+      // Navigation / edit keys with repeat
+      if (IsKeyPressed(KEY_BACKSPACE) || IsKeyPressedRepeat(KEY_BACKSPACE)) {
+        TbBackspace(mainBuffer);
+      } else if (IsKeyPressed(KEY_DELETE) || IsKeyPressedRepeat(KEY_DELETE)) {
+        TbDelete(mainBuffer);
+      } else if (IsKeyPressed(KEY_UP) || IsKeyPressedRepeat(KEY_UP)) {
+        TbMoveUp(mainBuffer);
+      } else if (IsKeyPressed(KEY_DOWN) || IsKeyPressedRepeat(KEY_DOWN)) {
+        TbMoveDown(mainBuffer);
+      } else if (IsKeyPressed(KEY_LEFT) || IsKeyPressedRepeat(KEY_LEFT)) {
+        TbMoveLeft(mainBuffer);
+      } else if (IsKeyPressed(KEY_RIGHT) || IsKeyPressedRepeat(KEY_RIGHT)) {
+        TbMoveRight(mainBuffer);
+      } else if (IsKeyPressed(KEY_ENTER) || IsKeyPressedRepeat(KEY_ENTER)) {
+        TbEnter(mainBuffer);
+      }
+
+      if (IsKeyPressed(KEY_ESCAPE)) {
+        mainMode = NORMAL;
+      } else if (pressed != 0) {
+        // Text insertion: GetCharPressed() already respects OS key repeat
+        TbInsertChar(mainBuffer, (char)pressed);
+      }
+
     } else if (mainMode == COMMAND) {
       char *cmdTxt = GbConcatenate(commandBuffer);
-      switch (GetKeyPressed()) {
-      case KEY_ESCAPE:
+
+      if (IsKeyPressed(KEY_ESCAPE)) {
         mainMode = NORMAL;
-        break;
-      case KEY_ENTER:
+      } else if (IsKeyPressed(KEY_ENTER)) {
         if (cmdTxt[0] == 'q') {
           CloseCall = true;
         }
         mainMode = NORMAL;
-        break;
-      default:
-        if (pressed != 0) {
-          if (GbInsertChar(commandBuffer, (char)pressed) == false) {
-
-            GbResizeCursor(commandBuffer, 10);
-            GbInsertChar(commandBuffer, (char)pressed);
-          }
-          GbPrintBufferDebug(commandBuffer);
+      } else if (pressed != 0) {
+        if (GbInsertChar(commandBuffer, (char)pressed) == false) {
+          GbResizeCursor(commandBuffer, 10);
+          GbInsertChar(commandBuffer, (char)pressed);
         }
-        break;
+        GbPrintBufferDebug(commandBuffer);
       }
+
       free(cmdTxt);
     }
+
     int delta1 = TbLinePosition(mainBuffer);
     int delta2 = mainBuffer->num_lines - 1 - TbLinePosition(mainBuffer);
     if (delta1 >= delta2) {
       params.line_num_padding =
-          numPlaces(delta1) * (params.char_width + params.char_spacing);
+          numPlaces(delta1) * (params.char_width + params.char_spacing) +
+          params.line_num_margin;
       printf("%d\n", numPlaces(delta1));
     } else {
       params.line_num_padding =
-          numPlaces(delta2) * (params.char_width + params.char_spacing);
+          numPlaces(delta2) * (params.char_width + params.char_spacing) +
+          params.line_num_margin;
 
       printf("%d\n", numPlaces(delta2));
     }
-    if (params.left_offset + params.line_num_padding + cursorPos.x - cam_pos.x >
-        GetRenderWidth()) {
+
+    cursorPos.x = params.left_offset + params.line_num_padding +
+                  (TbCursorPosition(mainBuffer) *
+                   (params.char_width + params.char_spacing));
+    cursorPos.y =
+        params.top_offset +
+        (TbLinePosition(mainBuffer) * (params.text_size + params.line_spacing));
+
+    float visible_cursor_x = cursorPos.x - cam_pos.x;
+    float left_bound = params.left_offset + params.line_num_padding;
+
+    // Scroll right when the *right edge* of the cursor would go off screen
+    if (visible_cursor_x + params.char_width > GetRenderWidth()) {
       cam_pos.x += params.char_width + params.char_spacing;
-    } else if (cursorPos.x - cam_pos.x <
-               params.left_offset + params.line_num_padding) {
+    }
+    // Scroll left when the cursor origin crosses the left bound
+    else if (visible_cursor_x < left_bound) {
       cam_pos.x -= params.char_width + params.char_spacing;
     }
+
     if (params.top_offset + cursorPos.y - cam_pos.y > GetRenderHeight()) {
       cam_pos.y += params.text_size + params.line_spacing;
     } else if (cursorPos.y - cam_pos.y < 0) {
       cam_pos.y -= params.text_size + params.line_spacing;
     }
+
     printf("%f\n", cam_pos.x);
     printf("%f\n", cam_pos.y);
 
@@ -252,12 +257,6 @@ int main(int argc, char *argv[]) {
                  params.text_size, params.char_spacing, params.num_color);
       free(lineNum);
     }
-    cursorPos.x = params.left_offset + params.line_num_padding +
-                  (TbCursorPosition(mainBuffer) *
-                   (params.char_width + params.char_spacing));
-    cursorPos.y =
-        params.top_offset +
-        (TbLinePosition(mainBuffer) * (params.text_size + params.line_spacing));
     DrawTextEx(monoFont, "_",
                (Vector2){cursorPos.x - cam_pos.x, cursorPos.y - cam_pos.y},
                params.text_size, params.char_spacing, params.cursor_color);
