@@ -109,6 +109,9 @@ int main(int argc, char *argv[]) {
   int ln_pad = 0;
   gap_buffer *commandBuffer = GbInitBuffer(10);
   bool CloseCall = false;
+
+  bool letterWasDown[26] = {0};
+  char letterLastChar[26] = {0};
   while (!WindowShouldClose() && !CloseCall) {
 
     int pressed = GetCharPressed();
@@ -140,10 +143,40 @@ int main(int argc, char *argv[]) {
       // Mode change: 'i' (no repeat)
       if (IsKeyPressed(KEY_I)) {
         mainMode = INSERT;
+
+        // Debounce the 'i' that put us into INSERT mode
+        int iIndex = 'i' - 'a'; // index 8
+        letterWasDown[iIndex] = true;
+        letterLastChar[iIndex] = 0; // ensures no keyup insert either
       }
 
     } else if (mainMode == INSERT) {
-      // Navigation / edit keys with repeat
+
+      // --- Crazy feature: letters type on keydown AND keyup ---
+      for (int i = 0; i < 26; i++) {
+        int key = KEY_A + i;
+        bool isDown = IsKeyDown(key);
+
+        // transition: up -> down  (keydown)
+        if (isDown && !letterWasDown[i]) {
+          bool shiftHeld =
+              IsKeyDown(KEY_LEFT_SHIFT) || IsKeyDown(KEY_RIGHT_SHIFT);
+          char c = shiftHeld ? ('A' + i) : ('a' + i);
+          letterLastChar[i] = c;
+          TbInsertChar(mainBuffer, c);
+        }
+
+        // transition: down -> up  (keyup)
+        if (!isDown && letterWasDown[i]) {
+          if (letterLastChar[i] != 0) {
+            TbInsertChar(mainBuffer, letterLastChar[i]);
+          }
+        }
+
+        letterWasDown[i] = isDown;
+      }
+
+      // --- Navigation / edit keys with repeat (unchanged) ---
       if (IsKeyPressed(KEY_BACKSPACE) || IsKeyPressedRepeat(KEY_BACKSPACE)) {
         TbBackspace(mainBuffer);
       } else if (IsKeyPressed(KEY_DELETE) || IsKeyPressedRepeat(KEY_DELETE)) {
@@ -160,11 +193,15 @@ int main(int argc, char *argv[]) {
         TbEnter(mainBuffer);
       }
 
+      // Mode change
       if (IsKeyPressed(KEY_ESCAPE)) {
         mainMode = NORMAL;
       } else if (pressed != 0) {
-        // Text insertion: GetCharPressed() already respects OS key repeat
-        TbInsertChar(mainBuffer, (char)pressed);
+        // Insert other printable chars (non-letters) via GetCharPressed()
+        if (!((pressed >= 'a' && pressed <= 'z') ||
+              (pressed >= 'A' && pressed <= 'Z'))) {
+          TbInsertChar(mainBuffer, (char)pressed);
+        }
       }
 
     } else if (mainMode == COMMAND) {
@@ -182,7 +219,6 @@ int main(int argc, char *argv[]) {
           GbResizeCursor(commandBuffer, 10);
           GbInsertChar(commandBuffer, (char)pressed);
         }
-        GbPrintBufferDebug(commandBuffer);
       }
 
       free(cmdTxt);
@@ -194,13 +230,10 @@ int main(int argc, char *argv[]) {
       params.line_num_padding =
           numPlaces(delta1) * (params.char_width + params.char_spacing) +
           params.line_num_margin;
-      printf("%d\n", numPlaces(delta1));
     } else {
       params.line_num_padding =
           numPlaces(delta2) * (params.char_width + params.char_spacing) +
           params.line_num_margin;
-
-      printf("%d\n", numPlaces(delta2));
     }
 
     cursorPos.x = params.left_offset + params.line_num_padding +
@@ -227,9 +260,6 @@ int main(int argc, char *argv[]) {
     } else if (cursorPos.y - cam_pos.y < 0) {
       cam_pos.y -= params.text_size + params.line_spacing;
     }
-
-    printf("%f\n", cam_pos.x);
-    printf("%f\n", cam_pos.y);
 
     BeginDrawing();
     DrawRectangle(0, 0, GetRenderWidth(), GetRenderHeight(),
