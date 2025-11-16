@@ -147,7 +147,7 @@ int main(int argc, char *argv[]) {
         // Debounce the 'i' that put us into INSERT mode
         int iIndex = 'i' - 'a'; // index 8
         letterWasDown[iIndex] = true;
-        letterLastChar[iIndex] = 0; // ensures no keyup insert either
+        letterLastChar[iIndex] = 1; // ensures no keyup insert either
       }
 
     } else if (mainMode == INSERT) {
@@ -159,17 +159,22 @@ int main(int argc, char *argv[]) {
 
         // transition: up -> down  (keydown)
         if (isDown && !letterWasDown[i]) {
-          bool shiftHeld =
+          bool shiftHeldDown =
               IsKeyDown(KEY_LEFT_SHIFT) || IsKeyDown(KEY_RIGHT_SHIFT);
-          char c = shiftHeld ? ('A' + i) : ('a' + i);
-          letterLastChar[i] = c;
-          TbInsertChar(mainBuffer, c);
+          char cDown = shiftHeldDown ? ('A' + i) : ('a' + i);
+          TbInsertChar(mainBuffer, cDown);
         }
 
         // transition: down -> up  (keyup)
         if (!isDown && letterWasDown[i]) {
-          if (letterLastChar[i] != 0) {
-            TbInsertChar(mainBuffer, letterLastChar[i]);
+          if (letterLastChar[i] == 1) {
+            // Suppress this release once (used for the 'i' that entered INSERT)
+            letterLastChar[i] = 0;
+          } else {
+            bool shiftHeldUp =
+                IsKeyDown(KEY_LEFT_SHIFT) || IsKeyDown(KEY_RIGHT_SHIFT);
+            char cUp = shiftHeldUp ? ('A' + i) : ('a' + i);
+            TbInsertChar(mainBuffer, cUp);
           }
         }
 
@@ -193,7 +198,7 @@ int main(int argc, char *argv[]) {
         TbEnter(mainBuffer);
       }
 
-      // Mode change
+      // Mode change + other chars
       if (IsKeyPressed(KEY_ESCAPE)) {
         mainMode = NORMAL;
       } else if (pressed != 0) {
