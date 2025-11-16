@@ -112,6 +112,7 @@ int main(int argc, char *argv[]) {
 
   bool letterWasDown[26] = {0};
   char letterLastChar[26] = {0};
+  bool ignoreLetterKeyUps = false;
   while (!WindowShouldClose() && !CloseCall) {
 
     int pressed = GetCharPressed();
@@ -148,6 +149,7 @@ int main(int argc, char *argv[]) {
         int iIndex = 'i' - 'a'; // index 8
         letterWasDown[iIndex] = true;
         letterLastChar[iIndex] = 1; // ensures no keyup insert either
+        ignoreLetterKeyUps = false;
       }
 
     } else if (mainMode == INSERT) {
@@ -159,6 +161,9 @@ int main(int argc, char *argv[]) {
 
         // transition: up -> down  (keydown)
         if (isDown && !letterWasDown[i]) {
+          // Hitting a new letter cancels the "ignore key-ups after space" mode
+          ignoreLetterKeyUps = false;
+
           bool shiftHeldDown =
               IsKeyDown(KEY_LEFT_SHIFT) || IsKeyDown(KEY_RIGHT_SHIFT);
           char cDown = shiftHeldDown ? ('A' + i) : ('a' + i);
@@ -167,7 +172,9 @@ int main(int argc, char *argv[]) {
 
         // transition: down -> up  (keyup)
         if (!isDown && letterWasDown[i]) {
-          if (letterLastChar[i] == 1) {
+          if (ignoreLetterKeyUps) {
+            // Between words (after space): ignore this release entirely
+          } else if (letterLastChar[i] == 1) {
             // Suppress this release once (used for the 'i' that entered INSERT)
             letterLastChar[i] = 0;
           } else {
@@ -198,13 +205,18 @@ int main(int argc, char *argv[]) {
         TbEnter(mainBuffer);
       }
 
-      // Mode change + other chars
       if (IsKeyPressed(KEY_ESCAPE)) {
         mainMode = NORMAL;
       } else if (pressed != 0) {
-        // Insert other printable chars (non-letters) via GetCharPressed()
-        if (!((pressed >= 'a' && pressed <= 'z') ||
-              (pressed >= 'A' && pressed <= 'Z'))) {
+        // Space: insert and enable "ignore letter key-ups" until next letter
+        // keydown
+        if (pressed == ' ') {
+          TbInsertChar(mainBuffer, ' ');
+          ignoreLetterKeyUps = true;
+        }
+        // Other printable chars (non-letters) via GetCharPressed()
+        else if (!((pressed >= 'a' && pressed <= 'z') ||
+                   (pressed >= 'A' && pressed <= 'Z'))) {
           TbInsertChar(mainBuffer, (char)pressed);
         }
       }
